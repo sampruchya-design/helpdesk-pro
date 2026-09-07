@@ -6,21 +6,25 @@ const router = express.Router();
 
 // GET /api/settings (admin only)
 router.get('/', authMiddleware, adminOnly, (req, res) => {
+  let refCost = {};
+  try { refCost = JSON.parse(getSetting('REF_COST_PRICE') || '{}'); } catch {}
   res.json({
     status: 'success',
     settings: {
       TELEGRAM_BOT_TOKEN: getSetting('TELEGRAM_BOT_TOKEN') || '',
-      TELEGRAM_GROUP_CHAT_ID: getSetting('TELEGRAM_GROUP_CHAT_ID') || ''
+      TELEGRAM_GROUP_CHAT_ID: getSetting('TELEGRAM_GROUP_CHAT_ID') || '',
+      REF_COST_PRICE: refCost
     }
   });
 });
 
 // PUT /api/settings (admin only)
 router.put('/', authMiddleware, adminOnly, (req, res) => {
-  const { TELEGRAM_BOT_TOKEN, TELEGRAM_GROUP_CHAT_ID } = req.body;
+  const { TELEGRAM_BOT_TOKEN, TELEGRAM_GROUP_CHAT_ID, REF_COST_PRICE } = req.body;
   if (TELEGRAM_BOT_TOKEN !== undefined) setSetting('TELEGRAM_BOT_TOKEN', String(TELEGRAM_BOT_TOKEN).trim());
   if (TELEGRAM_GROUP_CHAT_ID !== undefined) setSetting('TELEGRAM_GROUP_CHAT_ID', String(TELEGRAM_GROUP_CHAT_ID).trim());
-  res.json({ status: 'success', message: 'บันทึกการตั้งค่า Telegram แล้ว' });
+  if (REF_COST_PRICE !== undefined) setSetting('REF_COST_PRICE', JSON.stringify(REF_COST_PRICE || {}));
+  res.json({ status: 'success', message: 'บันทึกการตั้งค่าแล้ว' });
 });
 
 // POST /api/settings/telegram-test (admin only)

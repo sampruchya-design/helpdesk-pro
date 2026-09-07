@@ -28,6 +28,7 @@ app.use('/api/dashboard', require('./routes/dashboard'));
 app.use('/api/assets', require('./routes/assets'));
 app.use('/api/upload', require('./routes/upload'));
 app.use('/api/line', require('./routes/line'));
+app.use('/api/ai', require('./routes/ai'));
 // DEBUG: ดูสถานะ env vars (ไม่เปิดเผยค่า secret — ตอบแค่ true/false)
 app.get('/api/debug/env', (req, res) => {
   res.json({

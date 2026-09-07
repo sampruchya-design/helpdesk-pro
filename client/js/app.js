@@ -69,7 +69,7 @@ function switchTab(id) {
   if (id === 'dashboard') loadDashboard();
   if (id === 'list') loadTickets();
   if (id === 'asset') loadAssets();
-  if (id === 'admin') { loadUsers(); renderAdminLists(); loadTelegramSettings(); }
+  if (id === 'admin') { loadUsers(); renderAdminLists(); loadTelegramSettings(); loadAiPanel(); }
 }
 
 // ===== Modals =====

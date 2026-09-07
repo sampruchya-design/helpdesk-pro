@@ -3,6 +3,7 @@ const fs = require('fs');
 const path = require('path');
 const { getAll, getOne } = require('../database');
 const { sendDailyReport, sendWeeklyReport, sendTelegramBackup } = require('./notification');
+const { analyzeInsights } = require('./ai-analysis');
 
 const DB_PATH = path.join(__dirname, '..', 'data', 'database.db');
 
@@ -57,7 +58,8 @@ function generateDailyReport() {
     waitingParts: waitingParts.c,
     outsourced: outsourced.c,
     doneToday: doneToday.c,
-    monthCost: monthCost.c
+    monthCost: monthCost.c,
+    insights: analyzeInsights().slice(0, 4)
   });
 }
 
@@ -97,7 +99,8 @@ function generateWeeklyReport() {
     weekCost: weekCost.c,
     topTech: topTechRow?.technician || null,
     topTechCount: topTechRow?.c || 0,
-    overdue: overdue.c
+    overdue: overdue.c,
+    insights: analyzeInsights().slice(0, 4)
   });
 }
 

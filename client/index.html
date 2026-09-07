@@ -314,6 +314,18 @@
               <p class="page-sub">ดาวน์โหลดไฟล์ฐานข้อมูลทั้งก้อน (สำคัญมากก่อน restart/เหลือบหน้านัก)</p>
               <button class="export-btn" onclick="backupDatabase()" style="color:var(--teal);"><span class="export-icon">⬇️</span> ดาวน์โหลด .db</button>
             </div>
+            <div class="glass" style="padding:20px;border:1px solid rgba(0,212,255,0.25);">
+              <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
+                <h3 class="section-heading" style="margin-bottom:0;color:var(--teal);">🤖 AI วิเคราะห์ข้อมูล</h3>
+                <button onclick="loadAiPanel()" class="btn-add btn-cyan">🔄 รีเฟรช</button>
+              </div>
+              <div id="aiInsights" class="page-sub" style="white-space:pre-line;line-height:1.8;"></div>
+              <div id="aiCostComp" style="margin-top:10px;font-size:12px;overflow-x:auto;"></div>
+              <hr style="border-color:rgba(255,255,255,0.08);margin:14px 0;">
+              <p class="page-sub" style="margin-bottom:8px;">💰 ราคาอ้างอิงจ้างภายนอก (บาท/ครั้ง) — ให้ AI เปรียบเทียบ "ซ่อมเอง vs จ้างร้าน"</p>
+              <div id="refPriceFields"></div>
+              <button onclick="saveRefPrices()" class="btn-add btn-purple" style="margin-top:10px;width:100%;">💾 บันทึกราคาอ้างอิง</button>
+            </div>
             <div class="glass" style="padding:20px;border:1px solid rgba(245,166,35,0.25);">
               <h3 class="section-heading" style="color:var(--yellow);">🤖 การแจ้งเตือน Telegram</h3>
               <p class="page-sub">ตั้งค่าที่นี่ได้เลย ไม่ต้องแก้ไฟล์ (LINE ตั้งค่าใน .env)</p>

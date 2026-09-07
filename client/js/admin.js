@@ -207,3 +207,67 @@ async function testTelegram() {
     tgStatusEl().textContent = '❌ ' + err.message;
   }
 }
+
+// ===== AI Panel =====
+function escapeHtml(s) {
+  return String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+}
+
+async function loadAiPanel() {
+  const insEl = document.getElementById('aiInsights');
+  const compEl = document.getElementById('aiCostComp');
+  insEl.textContent = '⏳ กำลังวิเคราะห์ข้อมูล...';
+  try {
+    const res = await API.get('/api/ai/insights');
+    insEl.innerHTML = (res.insights || ['ไม่มีข้อมูล']).map(i => '• ' + escapeHtml(i)).join('<br>');
+    await renderRefPriceFields();
+
+    let html = '';
+    if (res.comparison && res.comparison.rows && res.comparison.rows.length) {
+      html = `<table class="data-table"><thead><tr><th style="text-align:left;">หมวด</th><th style="text-align:center;">ครั้ง</th><th style="text-align:right;">💰 จ่ายจริง</th><th style="text-align:right;">อ้างอิงจ้างร้าน</th><th style="text-align:right;">🆚 ต่าง</th></tr></thead><tbody>`;
+      res.comparison.rows.forEach(r => {
+        const cls = r.diff > 0 ? 'color:#f87171;' : 'color:#34d399;';
+        html += `<tr><td style="text-align:left;">${escapeHtml(r.category)}</td><td style="text-align:center;">${r.count}</td><td style="text-align:right;">฿${Number(r.cost).toLocaleString()}</td><td style="text-align:right;">฿${Number(r.extCost).toLocaleString()}</td><td style="text-align:right;${cls}">${r.diff > 0 ? '+' : ''}฿${Number(r.diff).toLocaleString()}</td></tr>`;
+      });
+      const t = res.comparison.total;
+      html += `<tr style="font-weight:700;border-top:1px solid rgba(255,255,255,0.15);"><td style="text-align:left;">รวมทุกหมวด</td><td style="text-align:center;">${t.c}</td><td style="text-align:right;">฿${Number(t.self_cost).toLocaleString()}</td><td style="text-align:right;">฿${Number(t.extCost).toLocaleString()}</td><td style="text-align:right;${t.diff > 0 ? 'color:#f87171;' : 'color:#34d399;'}">${t.diff > 0 ? '+' : ''}฿${Number(t.diff).toLocaleString()}</td></tr></tbody></table>`;
+    }
+    compEl.innerHTML = html || '';
+  } catch (err) {
+    insEl.textContent = '❌ ' + err.message;
+  }
+}
+
+async function renderRefPriceFields() {
+  const el = document.getElementById('refPriceFields');
+  try {
+    const [cats, st] = await Promise.all([
+      API.get('/api/config/categories'),
+      API.get('/api/settings')
+    ]);
+    const ref = (st.settings && st.settings.REF_COST_PRICE) || {};
+    el.innerHTML = (cats.categories || []).map(c =>
+      `<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;font-size:12px;">
+        <span style="flex:1;">${escapeHtml(c)}</span>
+        <input type="number" min="0" step="10" data-ref-price="${escapeHtml(c)}" value="${ref[c] != null ? ref[c] : ''}" class="inp" style="width:110px;text-align:right;" placeholder="฿">
+      </div>`
+    ).join('');
+  } catch (err) {
+    el.innerHTML = '<span style="color:#f87171;">โหลดหมวดหมู่ไม่สำเร็จ</span>';
+  }
+}
+
+async function saveRefPrices() {
+  const ref = {};
+  document.querySelectorAll('#refPriceFields [data-ref-price]').forEach(inp => {
+    const v = Number(inp.value);
+    if (isFinite(v) && v > 0) ref[inp.getAttribute('data-ref-price')] = Math.round(v);
+  });
+  try {
+    await API.put('/api/settings', { REF_COST_PRICE: ref });
+    showModal('บันทึกแล้ว', 'ราคาอ้างอิงถูกบันทึก — AI จะวิเคราะห์งบจากนี้');
+    loadAiPanel();
+  } catch (err) {
+    showModal('เกิดข้อผิดพลาด', err.message);
+  }
+}

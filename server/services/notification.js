@@ -127,6 +127,9 @@ async function sendDailyReport(data) {
     `✅ เสร็จสิ้นวันนี้: ${data.doneToday} รายการ`,
     `━━━━━━━━━━━━━━━━━━`,
     `💰 ค่าใช้จ่ายสะสมเดือนนี้: ฿${Number(data.monthCost).toLocaleString()}`,
+    ...(data.insights && data.insights.length
+      ? ['━━━━━━━━━━━━━━━━━━', '🤖 AI วิเคราะห์:', ...data.insights.map(i => ` • ${i}`)]
+      : []),
     `⏰ อัปเดตอัตโนมัติ 09:00 น.`
   ].join('\n');
 
@@ -153,6 +156,9 @@ async function sendWeeklyReport(data) {
     `📈 เฉลี่ย/งาน: ฿${data.weekDone > 0 ? Math.round(data.weekCost / data.weekDone).toLocaleString() : 0}`,
     data.topTech ? `🏆 ช่างทำงานมากสุด: ${data.topTech} (${data.topTechCount} งาน)` : '',
     data.overdue > 0 ? `🔴 งานค้าง >3 วัน: ${data.overdue} รายการ` : '',
+    ...(data.insights && data.insights.length
+      ? ['━━━━━━━━━━━━━━━━━━', '🤖 AI วิเคราะห์:', ...data.insights.map(i => ` • ${i}`)]
+      : []),
     `━━━━━━━━━━━━━━━━━━`,
     `⏰ รายงานอัตโนมัติ 16:00 น. วันศุกร์`
   ].filter(Boolean).join('\n');

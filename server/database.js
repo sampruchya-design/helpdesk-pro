@@ -84,6 +84,7 @@ function getLastInsertId() {
 
 function initSchema() {
   ensureUserSchema();
+  ensureTicketSchema();
   db.run(`
     CREATE TABLE IF NOT EXISTS categories (
       id   INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -170,6 +171,13 @@ function ensureUserSchema() {
   } else if (!names.includes('position')) {
     db.run('ALTER TABLE users ADD COLUMN position TEXT');
   }
+}
+
+function ensureTicketSchema() {
+  const r = db.exec('PRAGMA table_info(tickets)');
+  const names = r.length && r[0] ? r[0].values.map(v => v[1]) : [];
+  if (!names.includes('parts_cost')) db.run('ALTER TABLE tickets ADD COLUMN parts_cost REAL DEFAULT 0');
+  if (!names.includes('labor_cost')) db.run('ALTER TABLE tickets ADD COLUMN labor_cost REAL DEFAULT 0');
 }
 
 function seedDefaults() {
