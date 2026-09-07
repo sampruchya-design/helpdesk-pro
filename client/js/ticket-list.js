@@ -56,7 +56,13 @@ function renderList() {
 
   tbody.innerHTML = filtered.map(r => {
     const dateTxt = String(r.created_at || '').split(' ');
-    const actionCol = `<td style="text-align:center;padding:14px 16px;"><button onclick="openUpdateModal('${r.id}')" style="padding:6px 12px;border-radius:7px;background:rgba(0,212,255,0.08);border:1px solid rgba(0,212,255,0.2);color:var(--accent);font-size:11px;font-weight:700;cursor:pointer;font-family:'Kanit',sans-serif;">✏️ อัปเดต</button></td>`;
+    const isAdmin = currentUser && currentUser.role === 'admin';
+  const actionCol = isAdmin
+    ? `<td style="text-align:center;padding:14px 16px;white-space:nowrap;">
+        <button onclick="openUpdateModal('${r.id}')" style="padding:6px 10px;border-radius:7px;background:rgba(0,212,255,0.08);border:1px solid rgba(0,212,255,0.2);color:var(--accent);font-size:11px;font-weight:700;cursor:pointer;font-family:'Kanit',sans-serif;">✏️ อัปเดต</button>
+        <button onclick="deleteTicket('${r.id}')" style="padding:6px 10px;border-radius:7px;background:rgba(239,68,68,0.08);border:1px solid rgba(239,68,68,0.25);color:#f87171;font-size:11px;font-weight:700;cursor:pointer;font-family:'Kanit',sans-serif;">🗑️ ลบ</button>
+      </td>`
+    : `<td style="text-align:center;padding:14px 16px;"><button onclick="openUpdateModal('${r.id}')" style="padding:6px 12px;border-radius:7px;background:rgba(0,212,255,0.08);border:1px solid rgba(0,212,255,0.2);color:var(--accent);font-size:11px;font-weight:700;cursor:pointer;font-family:'Kanit',sans-serif;">✏️ อัปเดต</button></td>`;
 
     return `<tr>
       <td style="padding:14px 16px;">
@@ -138,4 +144,19 @@ function filterAndGoTo(status) {
   document.getElementById('searchInput').value = status === 'all' ? '' : status;
   switchTab('list');
   renderList();
+}
+
+async function deleteTicket(id) {
+  const r = ticketData.find(x => String(x.id) === String(id));
+  if (!r) return;
+  const ok = confirm(`ลบงาน ${r.ticket_no || ''} (${r.title || ''})?\nการลบไม่สามารถย้อนกลับได้`);
+  if (!ok) return;
+  try {
+    await API.del(`/api/tickets/${id}`);
+    showModal('ลบสำเร็จ', `ลบงาน ${r.ticket_no || ''} ออกจากระบบแล้ว`);
+    loadTickets();
+    loadDashboard();
+  } catch (err) {
+    showModal('เกิดข้อผิดพลาด', err.message);
+  }
 }
