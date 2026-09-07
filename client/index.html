@@ -1,0 +1,436 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="theme-color" content="#060b14">
+  <title>HelpdeskPro</title>
+  <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="/socket.io/socket.io.js"></script>
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+<div class="orb2"></div>
+
+<div id="sync-status" class="sync-ok">
+  <span id="sync-dot"></span>
+  <span id="sync-text">พร้อมใช้งาน</span>
+</div>
+
+<div id="loader">
+  <div class="loader-ring"></div>
+  <p class="loader-text">HELPDESK PRO</p>
+</div>
+
+<!-- ===== LOGIN ===== -->
+<div id="login-page">
+  <div class="login-card">
+    <div class="login-header">
+      <div class="login-icon">🔧</div>
+      <h1 class="login-title">Helpdesk<span class="accent">Pro</span></h1>
+      <p class="login-sub">ระบบแจ้งซ่อมและติดตามงาน</p>
+    </div>
+    <form id="loginForm">
+      <div class="field">
+        <label class="label">รหัสพนักงาน</label>
+        <input id="code-input" type="text" class="inp" placeholder="เช่น 00174" autocomplete="off" autocapitalize="off" required>
+      </div>
+      <p id="login-error" class="error-msg"></p>
+      <button type="submit" class="btn-primary" id="login-btn">เข้าสู่ระบบ</button>
+    </form>
+  </div>
+</div>
+
+<!-- ===== APP ===== -->
+<div id="app" style="display:none;">
+  <div id="sidebar-overlay" onclick="closeSidebar()"></div>
+
+  <aside id="sidebar">
+    <div class="sidebar-neon"></div>
+    <div class="sidebar-brand">
+      <div class="brand-icon">🔧</div>
+      <div>
+        <div class="brand-name">Helpdesk<span class="accent">Pro</span></div>
+        <div class="brand-live"><div class="logo-dot"></div><span>LIVE</span></div>
+      </div>
+      <button onclick="closeSidebar()" id="sidebar-close" class="sidebar-close-btn">✕</button>
+    </div>
+
+    <nav class="sidebar-nav">
+      <div class="section-title">เมนูหลัก</div>
+      <button id="btn-dashboard" class="nav-btn active" onclick="switchTab('dashboard')"><span class="nav-icon">📊</span> ภาพรวมระบบ</button>
+      <button id="btn-form" class="nav-btn" onclick="switchTab('form')"><span class="nav-icon">📝</span> แจ้งซ่อมใหม่</button>
+      <button id="btn-list" class="nav-btn" onclick="switchTab('list')"><span class="nav-icon">📋</span> รายการแจ้งซ่อม</button>
+      <button id="btn-asset" class="nav-btn" onclick="switchTab('asset')"><span class="nav-icon">🔍</span> ประวัติทรัพย์สิน</button>
+      <div class="section-title admin-only">ผู้ดูแล</div>
+      <button id="btn-admin" class="nav-btn admin-only" onclick="switchTab('admin')"><span class="nav-icon">⚙️</span> ผู้ดูแลระบบ</button>
+    </nav>
+
+    <div class="sidebar-footer">
+      <div class="user-box">
+        <div class="user-avatar">👤</div>
+        <div>
+          <div id="displayUsername" class="user-name">User</div>
+          <div id="displayRole" class="user-role">Role</div>
+        </div>
+      </div>
+      <button onclick="logout()" class="btn-logout">🚪 ออกจากระบบ</button>
+    </div>
+  </aside>
+
+  <main id="main-content">
+    <header id="mobile-header">
+      <button onclick="openSidebar()" class="hamburger">☰</button>
+      <span class="brand-name-sm">Helpdesk<span class="accent">Pro</span></span>
+    </header>
+
+    <div id="main-scroll">
+
+      <!-- ===== DASHBOARD ===== -->
+      <div id="tab-dashboard" class="tab-content active">
+        <div class="page-header">
+          <div>
+            <h2 class="page-title">ภาพรวมระบบ</h2>
+            <p class="page-sub">สรุปสถานะงานแจ้งซ่อมทั้งหมด</p>
+          </div>
+          <button onclick="loadDashboard()" class="btn-refresh">🔄 ดึงข้อมูลใหม่</button>
+        </div>
+
+        <div class="stat-grid" id="stat-cards"></div>
+
+        <div class="chart-grid">
+          <div class="glass" style="padding:20px;">
+            <div class="chart-label">สัดส่วนตามหมวดหมู่</div>
+            <div class="chart-wrap"><canvas id="chartCategory"></canvas></div>
+          </div>
+          <div class="glass" style="padding:20px;">
+            <div class="chart-label">ค่าใช้จ่ายตามสถานที่ (฿)</div>
+            <div class="chart-wrap"><canvas id="chartLocation"></canvas></div>
+          </div>
+        </div>
+
+        <div class="glass" style="padding:20px;margin-bottom:16px;">
+          <div class="chart-label" style="display:flex;align-items:center;gap:8px;">
+            <span>📅</span> ค่าใช้จ่ายรายเดือน
+          </div>
+          <div style="position:relative;width:100%;height:260px;">
+            <canvas id="chartMonthlyCost"></canvas>
+          </div>
+          <div id="monthlySummaryRow" class="summary-row"></div>
+        </div>
+
+        <div class="glass" style="padding:20px;">
+          <div class="chart-label" style="display:flex;align-items:center;gap:8px;">
+            <span>👨‍🔧</span> สรุปการทำงานของช่าง
+          </div>
+          <div style="overflow-x:auto;">
+            <table class="data-table">
+              <thead><tr>
+                <th style="text-align:left;">ชื่อช่าง</th>
+                <th style="text-align:center;color:var(--yellow);">รอซ่อม</th>
+                <th style="text-align:center;color:var(--teal);">กำลังซ่อม</th>
+                <th style="text-align:center;color:#fb923c;">รออะไหล่</th>
+                <th style="text-align:center;color:var(--purple);">ส่งซ่อม</th>
+                <th style="text-align:center;color:var(--green);">เสร็จสิ้น</th>
+                <th style="text-align:right;">ค่าใช้จ่าย (฿)</th>
+              </tr></thead>
+              <tbody id="techBody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- ===== FORM ===== -->
+      <div id="tab-form" class="tab-content" style="max-width:720px;margin:0 auto;">
+        <div class="page-header">
+          <div>
+            <h2 class="page-title">สร้างงานแจ้งซ่อมใหม่</h2>
+            <p class="page-sub">ข้อมูลจะถูกบันทึกลงฐานข้อมูลและแจ้งเตือนอัตโนมัติ</p>
+          </div>
+        </div>
+        <div class="glass" style="padding:28px;">
+          <form id="repairForm">
+            <div class="field">
+              <label class="label">ชื่อผู้แจ้ง <span class="req">*</span></label>
+              <input type="text" id="reporterName" class="inp" placeholder="ชื่อ-นามสกุล หรือ รหัสพนักงาน" required>
+            </div>
+            <div class="field-row">
+              <div>
+                <label class="label">หมวดหมู่ <span class="req">*</span></label>
+                <select id="category" required class="inp" onchange="onCategoryChange()">
+                  <option value="" disabled selected>เลือกหมวดหมู่</option>
+                </select>
+                <div id="category-detail-wrap" class="detail-wrap">
+                  <input type="text" id="category-detail" class="inp inp-warn" placeholder="ระบุชื่ออุปกรณ์ / รายละเอียด">
+                  <p class="hint-warn">⚠️ กรุณาระบุให้ชัดเจน</p>
+                </div>
+              </div>
+              <div>
+                <label class="label">ระดับความสำคัญ <span class="req">*</span></label>
+                <select id="priority" required class="inp">
+                  <option value="ปกติ">🟢 ปกติ</option>
+                  <option value="ด่วน">🟡 ด่วน</option>
+                  <option value="ด่วนมาก">🔴 ด่วนมาก</option>
+                </select>
+              </div>
+            </div>
+            <div class="field-row">
+              <div>
+                <label class="label">สถานที่ <span class="req">*</span></label>
+                <select id="location" required class="inp" onchange="onLocationChange()">
+                  <option value="" disabled selected>เลือกสถานที่</option>
+                </select>
+                <div id="location-detail-wrap" class="detail-wrap">
+                  <input type="text" id="location-detail" class="inp inp-accent" placeholder="ระบุชื่อสถานี / สถานที่">
+                  <p class="hint-accent">💡 กรุณาระบุให้ชัดเจน</p>
+                </div>
+              </div>
+              <div>
+                <label class="label">รหัสทรัพย์สิน (Asset ID)</label>
+                <input type="text" id="assetId" class="inp" placeholder="เช่น AC-001, SAT-003">
+              </div>
+            </div>
+            <div class="field">
+              <label class="label">รายละเอียดปัญหา <span class="req">*</span></label>
+              <textarea id="title" required rows="4" class="inp" style="resize:none;" placeholder="อธิบายอาการเสีย หรือปัญหาที่พบ..."></textarea>
+            </div>
+            <div class="field">
+              <label class="label">แนบรูปภาพ (ไม่บังคับ)</label>
+              <input type="file" id="photoFile" accept="image/*" class="inp" style="padding:8px;">
+            </div>
+            <button type="submit" id="submitBtn" class="btn-primary">✨ บันทึกงานแจ้งซ่อม</button>
+          </form>
+        </div>
+      </div>
+
+      <!-- ===== LIST ===== -->
+      <div id="tab-list" class="tab-content">
+        <div class="glass" style="padding:20px;">
+          <div class="list-header">
+            <div>
+              <h2 class="page-title" style="font-size:18px;">รายการแจ้งซ่อม</h2>
+              <p class="page-sub" id="list-count">ทั้งหมด 0 รายการ</p>
+            </div>
+            <input type="text" id="searchInput" onkeyup="renderList()" class="inp" style="width:220px;" placeholder="🔍 ค้นหา...">
+          </div>
+          <div class="table-wrap">
+            <table class="data-table">
+              <thead><tr>
+                <th style="text-align:left;">วันที่</th>
+                <th style="text-align:left;">สถานที่ / รหัส</th>
+                <th style="text-align:left;">ปัญหา</th>
+                <th style="text-align:center;">ความสำคัญ</th>
+                <th style="text-align:center;">สถานะ</th>
+                <th style="text-align:center;" class="admin-only">จัดการ</th>
+              </tr></thead>
+              <tbody id="listBody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- ===== ASSET ===== -->
+      <div id="tab-asset" class="tab-content">
+        <div class="page-header">
+          <div>
+            <h2 class="page-title">ประวัติทรัพย์สินรายตัว</h2>
+            <p class="page-sub">ติดตามจำนวนครั้งซ่อมและค่าใช้จ่ายรายทรัพย์สิน</p>
+          </div>
+        </div>
+        <div class="glass" style="padding:20px;">
+          <div class="table-wrap">
+            <table class="data-table">
+              <thead><tr>
+                <th style="text-align:left;">รหัสทรัพย์สิน / สถานที่</th>
+                <th style="text-align:center;">จำนวนซ่อม</th>
+                <th style="text-align:center;">สถานะล่าสุด</th>
+                <th style="text-align:right;">ยอดรวมค่าใช้จ่าย</th>
+              </tr></thead>
+              <tbody id="assetBody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- ===== ADMIN ===== -->
+      <div id="tab-admin" class="tab-content">
+        <div class="page-header">
+          <div>
+            <h2 class="page-title">ผู้ดูแลระบบ</h2>
+            <p class="page-sub">จัดการการตั้งค่าและข้อมูลระบบ</p>
+          </div>
+        </div>
+        <div class="admin-grid">
+          <div class="admin-col">
+            <div class="glass" style="padding:20px;">
+              <h3 class="section-heading">📂 จัดการหมวดหมู่</h3>
+              <div class="inline-form">
+                <input type="text" id="newCategory" class="inp" placeholder="ชื่อหมวดหมู่ใหม่">
+                <button onclick="addItem('category')" class="btn-add btn-purple">➕ เพิ่ม</button>
+              </div>
+              <ul id="categoryList" class="admin-list"></ul>
+            </div>
+            <div class="glass" style="padding:20px;">
+              <h3 class="section-heading">📍 จัดการสถานที่</h3>
+              <div class="inline-form">
+                <input type="text" id="newLocation" class="inp" placeholder="ชื่อสถานที่ใหม่">
+                <button onclick="addItem('location')" class="btn-add btn-cyan">➕ เพิ่ม</button>
+              </div>
+              <ul id="locationList" class="admin-list"></ul>
+            </div>
+            <div class="glass" style="padding:20px;">
+              <h3 class="section-heading">👨‍🔧 จัดการช่าง</h3>
+              <div class="inline-form">
+                <input type="text" id="newTechnician" class="inp" placeholder="ชื่อช่างใหม่">
+                <button onclick="addItem('technician')" class="btn-add btn-teal">➕ เพิ่ม</button>
+              </div>
+              <ul id="technicianList" class="admin-list"></ul>
+            </div>
+          </div>
+          <div class="admin-col">
+            <div class="glass" style="padding:20px;">
+              <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
+                <h3 class="section-heading" style="margin-bottom:0;">👥 จัดการผู้ใช้</h3>
+                <button onclick="openUserCreate()" class="btn-add btn-cyan">➕ เพิ่ม</button>
+              </div>
+              <div id="userList" class="admin-list" style="max-height:300px;"></div>
+            </div>
+            <div class="glass" style="padding:20px;border:1px solid rgba(168,85,247,0.2);">
+              <h3 class="section-heading" style="color:var(--purple);">📤 ส่งออกข้อมูล</h3>
+              <p class="page-sub">ดาวน์โหลดข้อมูลแจ้งซ่อมทั้งหมด</p>
+              <div class="export-grid">
+                <button class="export-btn" onclick="exportData('csv')"><span class="export-icon">📊</span> CSV</button>
+                <button class="export-btn" onclick="exportData('json')" style="color:var(--green);"><span class="export-icon">📈</span> JSON</button>
+                <button class="export-btn" onclick="exportData('txt')" style="color:var(--yellow);"><span class="export-icon">📝</span> TXT</button>
+              </div>
+            </div>
+            <div class="glass" style="padding:20px;border:1px solid rgba(34,211,238,0.25);">
+              <h3 class="section-heading" style="color:var(--teal);">💾 สำรองฐานข้อมูล</h3>
+              <p class="page-sub">ดาวน์โหลดไฟล์ฐานข้อมูลทั้งก้อน (สำคัญมากก่อน restart/เหลือบหน้านัก)</p>
+              <button class="export-btn" onclick="backupDatabase()" style="color:var(--teal);"><span class="export-icon">⬇️</span> ดาวน์โหลด .db</button>
+            </div>
+            <div class="glass" style="padding:20px;border:1px solid rgba(245,166,35,0.25);">
+              <h3 class="section-heading" style="color:var(--yellow);">🤖 การแจ้งเตือน Telegram</h3>
+              <p class="page-sub">ตั้งค่าที่นี่ได้เลย ไม่ต้องแก้ไฟล์ (LINE ตั้งค่าใน .env)</p>
+              <div class="field">
+                <label class="label">Bot Token</label>
+                <input type="text" id="tgToken" class="inp" placeholder="123456789:ABC-DEF1234..." autocomplete="off">
+              </div>
+              <div class="field">
+                <label class="label">Chat ID</label>
+                <input type="text" id="tgChatId" class="inp" placeholder="เช่น -1001234567890" autocomplete="off">
+              </div>
+              <div style="display:flex;gap:8px;margin-top:12px;">
+                <button onclick="saveTelegramSettings()" class="btn-add btn-cyan" style="flex:1;">💾 บันทึก</button>
+                <button onclick="testTelegram()" class="btn-add btn-purple" style="flex:1;">📤 ส่งข้อความทดสอบ</button>
+              </div>
+              <p id="tgStatus" class="page-sub" style="margin-top:10px;"></p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </main>
+</div>
+
+<!-- ===== UPDATE STATUS MODAL ===== -->
+<div id="updateModal" class="modal-backdrop">
+  <div class="glass modal-card">
+    <div class="modal-header">
+      <h3>อัปเดตสถานะงาน</h3>
+      <button onclick="closeUpdateModal()" class="modal-close">✕</button>
+    </div>
+    <input type="hidden" id="u_id">
+    <div class="field">
+      <label class="label">สถานะ</label>
+      <div class="pill-group">
+        <button class="status-pill" id="pill-wait" onclick="selectStatus('รอดำเนินการ')">⏳ รอดำเนินการ</button>
+        <button class="status-pill" id="pill-doing" onclick="selectStatus('กำลังซ่อม')">🔧 กำลังซ่อม</button>
+        <button class="status-pill" id="pill-parts" onclick="selectStatus('รออะไหล่')">📦 รออะไหล่</button>
+        <button class="status-pill" id="pill-out" onclick="selectStatus('ส่งซ่อมภายนอก')">📤 ส่งซ่อมภายนอก</button>
+        <button class="status-pill" id="pill-done" onclick="selectStatus('เสร็จสิ้น')">✅ เสร็จสิ้น</button>
+      </div>
+      <input type="hidden" id="u_status" value="รอดำเนินการ">
+    </div>
+    <div class="field-row">
+      <div>
+        <label class="label">ช่างผู้ดำเนินการ</label>
+        <select id="u_technician" class="inp">
+          <option value="">-- เลือกช่าง --</option>
+        </select>
+      </div>
+      <div>
+        <label class="label">ค่าใช้จ่าย (บาท)</label>
+        <input type="number" id="u_cost" class="inp" placeholder="0">
+      </div>
+    </div>
+    <div class="field">
+      <label class="label">บันทึกเพิ่มเติม</label>
+      <textarea id="u_notes" class="inp" rows="2" style="resize:none;" placeholder="หมายเหตุ..."></textarea>
+    </div>
+    <div class="modal-actions">
+      <button onclick="closeUpdateModal()" class="btn-cancel">ยกเลิก</button>
+      <button onclick="saveUpdate()" id="updateBtn" class="btn-primary-sm">บันทึก</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== SUCCESS MODAL ===== -->
+<div id="successModal" class="modal-backdrop">
+  <div class="glass modal-card modal-center">
+    <div class="success-icon">✓</div>
+    <h4 id="modalTitle" class="modal-title"></h4>
+    <p id="modalMsg" class="modal-msg"></p>
+    <button onclick="closeModal()" class="btn-success">ตกลง</button>
+  </div>
+</div>
+
+<!-- ===== USER MANAGEMENT MODAL ===== -->
+<div id="userModal" class="modal-backdrop">
+  <div class="glass modal-card">
+    <div class="modal-header">
+      <h3 id="userModalTitle">เพิ่มผู้ใช้</h3>
+      <button onclick="closeUserModal()" class="modal-close">✕</button>
+    </div>
+    <input type="hidden" id="editUserId">
+    <div class="field">
+      <label class="label">ชื่อ</label>
+      <input type="text" id="editUserName" class="inp" placeholder="ชื่อ-นามสกุล">
+    </div>
+    <div class="field-row">
+      <div>
+        <label class="label">รหัสพนักงาน</label>
+        <input type="text" id="editUserCode" class="inp" placeholder="เช่น 00174">
+      </div>
+      <div>
+        <label class="label">บทบาท</label>
+        <select id="editUserRole" class="inp">
+          <option value="user">พนักงาน</option>
+          <option value="admin">แอดมิน</option>
+        </select>
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button onclick="closeUserModal()" class="btn-cancel">ยกเลิก</button>
+      <button onclick="saveUser()" class="btn-primary-sm">บันทึก</button>
+    </div>
+  </div>
+</div>
+
+<script src="/js/api.js"></script>
+<script src="/js/auth.js"></script>
+<script src="/js/socket.js"></script>
+<script src="/js/dashboard.js"></script>
+<script src="/js/ticket-form.js"></script>
+<script src="/js/ticket-list.js"></script>
+<script src="/js/asset.js"></script>
+<script src="/js/admin.js"></script>
+<script src="/js/app.js"></script>
+</body>
+</html>
