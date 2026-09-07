@@ -1,8 +1,28 @@
 const cron = require('node-cron');
+const fs = require('fs');
+const path = require('path');
 const { getAll, getOne } = require('../database');
-const { sendDailyReport, sendWeeklyReport } = require('./notification');
+const { sendDailyReport, sendWeeklyReport, sendTelegramBackup } = require('./notification');
 
-function startScheduler() {
+const DB_PATH = path.join(__dirname, '..', 'data', 'database.db');
+
+function backupDatabaseToTelegram(saveDB) {
+  try {
+    saveDB();
+    const buf = fs.readFileSync(DB_PATH);
+    sendTelegramBackup(buf).then(ok => {
+      console.log(ok ? '[Scheduler] ส่งสำรองข้อมูลไป Telegram แล้ว' : '[Scheduler] ข้ามสำรอง (ยังไม่ตั้งค่า Telegram)');
+    });
+  } catch (err) {
+    console.error('[Scheduler] สำรองข้อมูลผิดพลาด:', err.message);
+  }
+}
+
+function startScheduler(saveDB) {
+  // สำรองข้อมูลอัตโนมัติ → Telegram: หลัง start 60 วินาที + ทุก 6 ชั่วโมง
+  setTimeout(() => backupDatabaseToTelegram(saveDB), 60 * 1000);
+  cron.schedule('0 */6 * * *', () => backupDatabaseToTelegram(saveDB), { timezone: 'Asia/Bangkok' });
+
   // Daily report — ทุกวัน 09:00
   cron.schedule('0 9 * * *', () => {
     console.log('[Scheduler] ส่ง Daily Report...');
@@ -15,7 +35,7 @@ function startScheduler() {
     generateWeeklyReport();
   }, { timezone: 'Asia/Bangkok' });
 
-  console.log('[Scheduler] เริ่มต้นแล้ว — Daily 09:00, Weekly Fri 16:00');
+  console.log('[Scheduler] เริ่มต้นแล้ว — สำรองทุก 6 ชม., Daily 09:00, Weekly Fri 16:00');
 }
 
 function generateDailyReport() {

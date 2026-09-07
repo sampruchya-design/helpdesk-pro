@@ -2,7 +2,8 @@
 # 1) push โปรเจคนี้ขึ้น GitHub
 # 2) https://render.com → New → Blueprint → เลือก repo
 # ⚠️ ข้อจำกัด free tier Render: หลับเมื่อไม่มีคนเข้า 15 นาที และดิสก์ชั่วคราว
-#    → ปุ่ม "สำรองฐานข้อมูล" (admin) ใช้ดาวน์โหลด .db ไว้ก่อน restart ได้
+#    → ระบบสำรองข้อมูลอัตโนมัติ: ส่ง database.db ไป Telegram ทุก 6 ชม. + หลัง start
+#      (ต้องกรอก Telegram Bot Token / Chat ID ในหน้าแอดมิน) + ปุ่ม "สำรองฐานข้อมูล" ในหน้าแอดมิน
 services:
   - type: web
     name: helpdeskpro

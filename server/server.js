@@ -161,7 +161,7 @@ const PORT = process.env.PORT || 3000;
   console.log('✅ SQLite database พร้อมแล้ว');
 
   const { startScheduler } = require('./services/scheduler');
-  startScheduler();
+  startScheduler(saveDB);
 
   server.listen(PORT, () => {
     console.log(`\n🔧 HelpdeskPro Server ทำงานที่ port ${PORT}`);

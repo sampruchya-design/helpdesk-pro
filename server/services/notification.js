@@ -46,6 +46,31 @@ async function sendTelegram(message) {
   }
 }
 
+async function sendTelegramBackup(fileBuffer) {
+  const TG_TOKEN = getSetting('TELEGRAM_BOT_TOKEN');
+  const TG_GROUP = getSetting('TELEGRAM_GROUP_CHAT_ID');
+  if (!TG_TOKEN || !TG_GROUP) {
+    console.log('[Telegram-สำรอง] ยังไม่ได้ตั้งค่า — ข้ามการสำรอง');
+    return false;
+  }
+  try {
+    const fd = new FormData();
+    fd.append('chat_id', TG_GROUP);
+    fd.append('caption', `💾 สำรองฐานข้อมูล HelpdeskPro\n⏰ ${new Date().toLocaleString('th-TH', { timeZone: 'Asia/Bangkok' })}`);
+    fd.append('document', new Blob([fileBuffer], { type: 'application/octet-stream' }), `backup-${new Date().toISOString().slice(0, 10)}.db`);
+    await axios.post(`https://api.telegram.org/bot${TG_TOKEN}/sendDocument`, fd, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+      maxBodyLength: Infinity,
+      maxContentLength: Infinity
+    });
+    console.log('[Telegram-สำรอง] ส่งไฟล์สำเร็จ');
+    return true;
+  } catch (err) {
+    console.error('[Telegram-สำรอง] ส่งไม่สำเร็จ:', err.response && err.response.data ? JSON.stringify(err.response.data) : err.message);
+    return false;
+  }
+}
+
 async function notifyNewTicket(ticket) {
   const priorityEmoji = {
     'ด่วนมาก': '🔴 ด่วนมาก',
@@ -136,7 +161,7 @@ async function sendWeeklyReport(data) {
 }
 
 module.exports = {
-  sendLINE, sendTelegram,
+  sendLINE, sendTelegram, sendTelegramBackup,
   notifyNewTicket, notifyStatusUpdate,
   sendDailyReport, sendWeeklyReport
 };
