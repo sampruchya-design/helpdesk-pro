@@ -84,7 +84,6 @@ function getLastInsertId() {
 
 function initSchema() {
   ensureUserSchema();
-  ensureTicketSchema();
   db.run(`
     CREATE TABLE IF NOT EXISTS categories (
       id   INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -146,6 +145,8 @@ function initSchema() {
   db.run('CREATE INDEX IF NOT EXISTS idx_tickets_status ON tickets(status)');
   db.run('CREATE INDEX IF NOT EXISTS idx_tickets_created ON tickets(created_at)');
   db.run('CREATE INDEX IF NOT EXISTS idx_sla_log_ticket ON sla_log(ticket_id)');
+
+  ensureTicketSchema();
 
   markDirty();
   seedDefaults();
