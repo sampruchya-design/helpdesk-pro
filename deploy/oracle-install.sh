@@ -11,6 +11,11 @@
 set -euo pipefail
 
 REPO_URL="${1:-https://github.com/YOUR_USERNAME/helpdesk-pro.git}"
+JWT_SECRET="${2:-change-me-to-a-long-random-string}"
+LINE_CHANNEL_ACCESS_TOKEN="${3:-NA}"
+LINE_CHANNEL_ID="${4:-NA}"
+LINE_CHANNEL_SECRET="${5:-NA}"
+LINE_GROUP_CHAT_ID="${6:-NA}"
 APP_DIR=/opt/helpdesk-pro
 
 echo "==> 1/5 ติดตั้ง Node.js 20"
@@ -27,13 +32,12 @@ echo "==> 3/5 ตั้งค่า .env"
 if [ ! -f "$APP_DIR/.env" ]; then
   sudo cp "$APP_DIR/.env.example" "$APP_DIR/.env"
 fi
-# ใส่ค่า secrets ถ้ามี (ส่งผ่าน env ในการรันคำสั่ง) — .env จะถูกสร้างให้อัตโนมัติ
-sudo sed -i "s|^JWT_SECRET=.*|JWT_SECRET=${JWT_SECRET:-NA}|" "$APP_DIR/.env"
-sudo sed -i "s|^LINE_CHANNEL_ACCESS_TOKEN=.*|LINE_CHANNEL_ACCESS_TOKEN=${LINE_CHANNEL_ACCESS_TOKEN:-NA}|" "$APP_DIR/.env"
-sudo sed -i "s|^LINE_CHANNEL_ID=.*|LINE_CHANNEL_ID=${LINE_CHANNEL_ID:-NA}|" "$APP_DIR/.env"
-sudo sed -i "s|^LINE_CHANNEL_SECRET=.*|LINE_CHANNEL_SECRET=${LINE_CHANNEL_SECRET:-NA}|" "$APP_DIR/.env"
-sudo sed -i "s|^LINE_GROUP_CHAT_ID=.*|LINE_GROUP_CHAT_ID=${LINE_GROUP_CHAT_ID:-NA}|" "$APP_DIR/.env"
-echo "   -> .env พร้อมใช้งาน (JWT_SECRET ถูก auto-generate ในคำสั่งรัน)"
+sudo sed -i "s|^JWT_SECRET=.*|JWT_SECRET=${JWT_SECRET}|" "$APP_DIR/.env"
+sudo sed -i "s|^LINE_CHANNEL_ACCESS_TOKEN=.*|LINE_CHANNEL_ACCESS_TOKEN=${LINE_CHANNEL_ACCESS_TOKEN}|" "$APP_DIR/.env"
+sudo sed -i "s|^LINE_CHANNEL_ID=.*|LINE_CHANNEL_ID=${LINE_CHANNEL_ID}|" "$APP_DIR/.env"
+sudo sed -i "s|^LINE_CHANNEL_SECRET=.*|LINE_CHANNEL_SECRET=${LINE_CHANNEL_SECRET}|" "$APP_DIR/.env"
+sudo sed -i "s|^LINE_GROUP_CHAT_ID=.*|LINE_GROUP_CHAT_ID=${LINE_GROUP_CHAT_ID}|" "$APP_DIR/.env"
+echo "   -> .env พร้อมใช้งาน (รับค่ามาจาก argument ที่ส่งมา)"
 
 echo "==> 4/5 ติดตั้ง systemd service"
 sudo cp "$APP_DIR/deploy/helpdeskpro.service" /etc/systemd/system/
