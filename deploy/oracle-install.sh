@@ -26,8 +26,14 @@ sudo npm install --omit=dev
 echo "==> 3/5 ตั้งค่า .env"
 if [ ! -f "$APP_DIR/.env" ]; then
   sudo cp "$APP_DIR/.env.example" "$APP_DIR/.env"
-  echo "!!!!! แก้ไฟล์ $APP_DIR/.env ให้ครบ (JWT_SECRET, LINE...) ก่อน start !!!!!"
 fi
+# ใส่ค่า secrets ถ้ามี (ส่งผ่าน env ในการรันคำสั่ง) — .env จะถูกสร้างให้อัตโนมัติ
+sudo sed -i "s|^JWT_SECRET=.*|JWT_SECRET=${JWT_SECRET:-NA}|" "$APP_DIR/.env"
+sudo sed -i "s|^LINE_CHANNEL_ACCESS_TOKEN=.*|LINE_CHANNEL_ACCESS_TOKEN=${LINE_CHANNEL_ACCESS_TOKEN:-NA}|" "$APP_DIR/.env"
+sudo sed -i "s|^LINE_CHANNEL_ID=.*|LINE_CHANNEL_ID=${LINE_CHANNEL_ID:-NA}|" "$APP_DIR/.env"
+sudo sed -i "s|^LINE_CHANNEL_SECRET=.*|LINE_CHANNEL_SECRET=${LINE_CHANNEL_SECRET:-NA}|" "$APP_DIR/.env"
+sudo sed -i "s|^LINE_GROUP_CHAT_ID=.*|LINE_GROUP_CHAT_ID=${LINE_GROUP_CHAT_ID:-NA}|" "$APP_DIR/.env"
+echo "   -> .env พร้อมใช้งาน (JWT_SECRET ถูก auto-generate ในคำสั่งรัน)"
 
 echo "==> 4/5 ติดตั้ง systemd service"
 sudo cp "$APP_DIR/deploy/helpdeskpro.service" /etc/systemd/system/
