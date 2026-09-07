@@ -54,13 +54,9 @@ function renderList() {
     return;
   }
 
-  const isAdmin = currentUser && currentUser.role === 'admin';
-
   tbody.innerHTML = filtered.map(r => {
     const dateTxt = String(r.created_at || '').split(' ');
-    const actionCol = isAdmin
-      ? `<td style="text-align:center;padding:14px 16px;"><button onclick="openUpdateModal('${r.id}')" style="padding:6px 12px;border-radius:7px;background:rgba(0,212,255,0.08);border:1px solid rgba(0,212,255,0.2);color:var(--accent);font-size:11px;font-weight:700;cursor:pointer;font-family:'Kanit',sans-serif;">✏️ อัปเดต</button></td>`
-      : `<td style="text-align:center;padding:14px 16px;color:var(--text-faint);font-size:11px;">—</td>`;
+    const actionCol = `<td style="text-align:center;padding:14px 16px;"><button onclick="openUpdateModal('${r.id}')" style="padding:6px 12px;border-radius:7px;background:rgba(0,212,255,0.08);border:1px solid rgba(0,212,255,0.2);color:var(--accent);font-size:11px;font-weight:700;cursor:pointer;font-family:'Kanit',sans-serif;">✏️ อัปเดต</button></td>`;
 
     return `<tr>
       <td style="padding:14px 16px;">

@@ -162,10 +162,13 @@ function ensureUserSchema() {
         pin         TEXT,
         name        TEXT NOT NULL,
         role        TEXT DEFAULT 'user',
+        position    TEXT,
         active      INTEGER DEFAULT 1,
         created_at  DATETIME DEFAULT (datetime('now','localtime'))
       )
     `);
+  } else if (!names.includes('position')) {
+    db.run('ALTER TABLE users ADD COLUMN position TEXT');
   }
 }
 
@@ -203,6 +206,22 @@ function seedDefaults() {
       runQuery('INSERT INTO users (code, name, role) VALUES (?, ?, ?)', [code, name, 'user']);
     });
   }
+
+  // ตั้งตำแหน่ง (position) ตามรหัสพนักงาน — รันทุกครั้ง (ไม่ง้อ seed ใหม่)
+  const positions = {
+    '00174': 'หัวหน้าส่วนงาน',
+    '00235': 'วิศวกร อาวุโส',
+    '01263': 'วิศวกร อาวุโส',
+    '00357': 'เจ้าหน้าที่เทคนิค อาวุโส',
+    '01004': 'เจ้าหน้าที่เทคนิค',
+    '01339': 'เจ้าหน้าที่เทคนิค',
+    '01424': 'เจ้าหน้าที่เทคนิค',
+    '01440': 'พนักงานเทคนิค'
+  };
+  Object.entries(positions).forEach(([code, position]) => {
+    runQuery('UPDATE users SET position = ? WHERE code = ?', [position, code]);
+  });
+  runQuery('UPDATE users SET position = ? WHERE code = ?', ['ผู้ดูแลระบบ', 'admin']);
 
   saveDB();
 }

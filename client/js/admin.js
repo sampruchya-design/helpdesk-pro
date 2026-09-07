@@ -68,7 +68,9 @@ function renderUserList() {
   el.innerHTML = allUsers.map(u => `
     <li style="display:flex;justify-content:space-between;align-items:center;gap:8px;padding:10px;background:rgba(0,212,255,0.03);border:1px solid var(--border);border-radius:8px;margin-bottom:6px;">
       <div style="flex:1;min-width:0;">
-        <div style="font-size:13px;font-weight:600;color:#e2eaf7;">${u.name}</div>
+        <div style="font-size:13px;font-weight:600;color:#e2eaf7;">${u.name}
+          ${u.position ? `<span style="font-size:10px;font-weight:400;color:var(--text-muted);"> · ${u.position}</span>` : ''}
+        </div>
         <div style="font-size:10px;color:var(--text-muted);">
           ${u.code ? `<span style="color:var(--accent);">${u.code}</span> · ` : ''}${u.role === 'admin' ? '⭐ แอดมิน' : '👤 พนักงาน'}${u.active ? '' : ' · 🚫 ปิดใช้งาน'}
         </div>

@@ -38,9 +38,10 @@ function populateLocationSelect() {
 }
 
 function populateTechnicianSelects() {
-  const sel = document.getElementById('u_technician');
-  sel.innerHTML = '<option value="">-- เลือกช่าง --</option>' +
-    technicianList.map(t => `<option value="${t.name}">${t.name}</option>`).join('');
+  const dl = document.getElementById('technician-datalist');
+  if (dl) {
+    dl.innerHTML = technicianList.map(t => `<option value="${t.name}">${t.name}</option>`).join('');
+  }
 }
 
 function onCategoryChange() {

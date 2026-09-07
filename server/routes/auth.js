@@ -28,13 +28,13 @@ router.post('/login', (req, res) => {
   res.json({
     status: 'success',
     token,
-    user: { id: user.id, code: user.code, name: user.name, role: user.role }
+    user: { id: user.id, code: user.code, name: user.name, role: user.role, position: user.position || null }
   });
 });
 
 // GET /api/auth/me
 router.get('/me', authMiddleware, (req, res) => {
-  const user = getOne('SELECT id, code, name, role FROM users WHERE id = ?', [req.user.id]);
+  const user = getOne('SELECT id, code, name, role, position FROM users WHERE id = ?', [req.user.id]);
   if (!user) return res.status(404).json({ status: 'error', message: 'ไม่พบผู้ใช้' });
   res.json({ status: 'success', user });
 });
