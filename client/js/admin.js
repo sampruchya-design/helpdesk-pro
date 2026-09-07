@@ -246,12 +246,13 @@ async function renderRefPriceFields() {
       API.get('/api/settings')
     ]);
     const ref = (st.settings && st.settings.REF_COST_PRICE) || {};
-    el.innerHTML = (cats.categories || []).map(c =>
-      `<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;font-size:12px;">
-        <span style="flex:1;">${escapeHtml(c)}</span>
-        <input type="number" min="0" step="10" data-ref-price="${escapeHtml(c)}" value="${ref[c] != null ? ref[c] : ''}" class="inp" style="width:110px;text-align:right;" placeholder="฿">
-      </div>`
-    ).join('');
+    el.innerHTML = (cats.categories || []).map(c => {
+      const name = (c && typeof c === 'object') ? (c.name || '') : String(c);
+      return `<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;font-size:12px;">
+        <span style="flex:1;">${escapeHtml(name)}</span>
+        <input type="number" min="0" step="10" data-ref-price="${escapeHtml(name)}" value="${ref[name] != null ? ref[name] : ''}" class="inp" style="width:110px;text-align:right;" placeholder="฿">
+      </div>`;
+    }).join('');
   } catch (err) {
     el.innerHTML = '<span style="color:#f87171;">โหลดหมวดหมู่ไม่สำเร็จ</span>';
   }
