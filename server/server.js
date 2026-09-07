@@ -28,6 +28,18 @@ app.use('/api/dashboard', require('./routes/dashboard'));
 app.use('/api/assets', require('./routes/assets'));
 app.use('/api/upload', require('./routes/upload'));
 app.use('/api/line', require('./routes/line'));
+// DEBUG: ดูสถานะ env vars (ไม่เปิดเผยค่า secret — ตอบแค่ true/false)
+app.get('/api/debug/env', (req, res) => {
+  res.json({
+    lineToken: Boolean(process.env.LINE_CHANNEL_ACCESS_TOKEN),
+    lineChannelId: Boolean(process.env.LINE_CHANNEL_ID),
+    lineChannelSecret: Boolean(process.env.LINE_CHANNEL_SECRET),
+    lineGroup: Boolean(process.env.LINE_GROUP_CHAT_ID),
+    jwtSet: Boolean(process.env.JWT_SECRET),
+    port: process.env.PORT || '(default 3000)'
+  });
+});
+
 app.use('/api/settings', require('./routes/settings'));
 
 // === Backup (admin) ===
