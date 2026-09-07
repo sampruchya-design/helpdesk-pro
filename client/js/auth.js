@@ -49,7 +49,7 @@ function logout() {
 
 function applyRolePermissions() {
   const admin = currentUser && currentUser.role === 'admin';
-  document.getElementById('displayUsername').textContent = currentUser.name + (currentUser.position ? ' · ' + currentUser.position : '');
+  document.getElementById('displayUsername').textContent = currentUser.name;
   document.getElementById('displayRole').textContent = currentUser.role === 'admin' ? '⭐ ผู้ดูแลระบบ' : (currentUser.position || '👤 พนักงาน');
   document.querySelectorAll('.admin-only').forEach(el => {
     el.style.display = admin ? '' : 'none';
