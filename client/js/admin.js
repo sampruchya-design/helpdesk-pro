@@ -72,7 +72,7 @@ function renderUserList() {
           ${u.position ? `<span style="font-size:10px;font-weight:400;color:var(--text-muted);"> · ${u.position}</span>` : ''}
         </div>
         <div style="font-size:10px;color:var(--text-muted);">
-          ${u.code ? `<span style="color:var(--accent);">${u.code}</span> · ` : ''}${u.role === 'admin' ? '⭐ แอดมิน' : '👤 พนักงาน'}${u.active ? '' : ' · 🚫 ปิดใช้งาน'}
+          ${u.code ? `<span style="color:var(--accent);">${u.code}</span> · ` : ''}${u.role === 'admin' ? '⭐ แอดมิน' : (u.position || '👤 พนักงาน')}${u.active ? '' : ' · 🚫 ปิดใช้งาน'}
         </div>
       </div>
       <div style="display:flex;gap:4px;flex-shrink:0;">
