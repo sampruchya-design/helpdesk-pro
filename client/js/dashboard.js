@@ -21,16 +21,16 @@ function renderDashboard(data) {
   const total = data.total;
 
   const cards = [
-    { label: 'ทั้งหมด', val: total, tag: '📋 รายการ', color: 'var(--accent2)', bleft: '3px solid var(--accent2)' },
-    { label: 'รอดำเนินการ', val: statuses['รอดำเนินการ'], tag: '⏳ รายการ', color: 'var(--yellow)', bleft: '3px solid var(--yellow)' },
-    { label: 'กำลังซ่อม', val: statuses['กำลังซ่อม'], tag: '🔧 รายการ', color: 'var(--teal)', bleft: '3px solid var(--teal)' },
-    { label: 'รออะไหล่', val: statuses['รออะไหล่'], tag: '📦 รายการ', color: 'var(--purple)', bleft: '3px solid var(--purple)' },
-    { label: 'ส่งซ่อมภายนอก', val: statuses['ส่งซ่อมภายนอก'], tag: '📤 รายการ', color: 'var(--orange)', bleft: '3px solid var(--orange)' },
-    { label: 'เสร็จสิ้น', val: statuses['เสร็จสิ้น'], tag: '✅ รายการ', color: 'var(--green)', bleft: '3px solid var(--green)' },
+    { label: 'ทั้งหมด', filter: 'all', val: total, tag: '📋 รายการ', color: 'var(--accent2)', bleft: '3px solid var(--accent2)' },
+    { label: 'รอดำเนินการ', filter: 'รอดำเนินการ', val: statuses['รอดำเนินการ'], tag: '⏳ รายการ', color: 'var(--yellow)', bleft: '3px solid var(--yellow)' },
+    { label: 'กำลังซ่อม', filter: 'กำลังซ่อม', val: statuses['กำลังซ่อม'], tag: '🔧 รายการ', color: 'var(--teal)', bleft: '3px solid var(--teal)' },
+    { label: 'รออะไหล่', filter: 'รออะไหล่', val: statuses['รออะไหล่'], tag: '📦 รายการ', color: 'var(--purple)', bleft: '3px solid var(--purple)' },
+    { label: 'ส่งซ่อมภายนอก', filter: 'ส่งซ่อมภายนอก', val: statuses['ส่งซ่อมภายนอก'], tag: '📤 รายการ', color: 'var(--orange)', bleft: '3px solid var(--orange)' },
+    { label: 'เสร็จสิ้น', filter: 'เสร็จสิ้น', val: statuses['เสร็จสิ้น'], tag: '✅ รายการ', color: 'var(--green)', bleft: '3px solid var(--green)' },
   ];
 
   document.getElementById('stat-cards').innerHTML = cards.map(c => `
-    <div class="glass stat-card" style="border-left:${c.bleft};">
+    <div class="glass stat-card" onclick="filterAndGoTo('${c.filter}')" style="border-left:${c.bleft};">
       <div class="stat-glow" style="background:${c.color};"></div>
       <div class="stat-label">${c.label}</div>
       <div class="stat-value" style="color:${c.color};}">${c.val}</div>
