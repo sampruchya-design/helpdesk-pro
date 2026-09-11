@@ -1,6 +1,6 @@
 const express = require('express');
 const jwt = require('jsonwebtoken');
-const { getOne, runQuery, getAll } = require('../database');
+const { getOne, runQuery, getAll, hashPin } = require('../database');
 const { authMiddleware, adminOnly } = require('../middleware/auth');
 
 const router = express.Router();
@@ -8,7 +8,7 @@ const JWT_SECRET = process.env.JWT_SECRET || 'helpdesk-pro-secret';
 
 // POST /api/auth/login
 router.post('/login', (req, res) => {
-  const { code } = req.body;
+  const { code, pin } = req.body;
   if (!code || !String(code).trim()) {
     return res.status(400).json({ status: 'error', message: 'กรุณากรอกรหัสพนักงาน' });
   }
@@ -17,6 +17,10 @@ router.post('/login', (req, res) => {
 
   if (!user) {
     return res.status(401).json({ status: 'error', message: 'รหัสพนักงานไม่ถูกต้อง' });
+  }
+
+  if (user.pin && (!pin || hashPin(String(pin)) !== user.pin)) {
+    return res.status(401).json({ status: 'error', message: 'รหัสผ่านไม่ถูกต้อง' });
   }
 
   const token = jwt.sign(
@@ -41,7 +45,7 @@ router.get('/me', authMiddleware, (req, res) => {
 
 // POST /api/auth/register (admin only)
 router.post('/register', authMiddleware, adminOnly, (req, res) => {
-  const { code, name, role } = req.body;
+  const { code, name, role, position, pin } = req.body;
   if (!code || !String(code).trim() || !name || !String(name).trim()) {
     return res.status(400).json({ status: 'error', message: 'กรุณากรอกรหัสพนักงานและชื่อ' });
   }
@@ -53,21 +57,27 @@ router.post('/register', authMiddleware, adminOnly, (req, res) => {
   }
 
   const newName = String(name).trim();
-  runQuery('INSERT INTO users (code, name, role) VALUES (?, ?, ?)', [newCode, newName, role === 'admin' ? 'admin' : 'user']);
+  const finalPin = pin && String(pin).trim() ? String(pin).trim() : newCode; // ไม่กรอก = ใช้รหัสพนักงาน
+  runQuery('INSERT INTO users (code, name, role, position, pin) VALUES (?, ?, ?, ?, ?)',
+    [newCode, newName, role === 'admin' ? 'admin' : 'user', (position && String(position).trim()) || null, hashPin(finalPin)]);
 
-  const newUser = getOne('SELECT id, code, name, role FROM users ORDER BY id DESC LIMIT 1');
+  const newUser = getOne('SELECT id, code, name, role, position FROM users ORDER BY id DESC LIMIT 1');
   res.json({ status: 'success', user: newUser });
 });
 
 // GET /api/auth/users (admin only)
 router.get('/users', authMiddleware, adminOnly, (req, res) => {
-  const users = getAll('SELECT id, code, name, role, active, created_at FROM users ORDER BY id');
+  const users = getAll(`
+    SELECT id, code, name, role, position, active, created_at,
+      CASE WHEN pin IS NOT NULL AND pin != '' THEN 1 ELSE 0 END as pin_set
+    FROM users ORDER BY id
+  `);
   res.json({ status: 'success', users });
 });
 
 // PUT /api/auth/users/:id (admin only)
 router.put('/users/:id', authMiddleware, adminOnly, (req, res) => {
-  const { code, name, role, active } = req.body;
+  const { code, name, role, position, pin, active } = req.body;
   const user = getOne('SELECT * FROM users WHERE id = ?', [Number(req.params.id)]);
   if (!user) return res.status(404).json({ status: 'error', message: 'ไม่พบผู้ใช้' });
 
@@ -85,6 +95,8 @@ router.put('/users/:id', authMiddleware, adminOnly, (req, res) => {
   }
   if (name !== undefined && String(name).trim()) { updates.push('name = ?'); params.push(String(name).trim()); }
   if (role) { updates.push('role = ?'); params.push(role); }
+  if (position !== undefined) { updates.push('position = ?'); params.push(position && String(position).trim() ? String(position).trim() : null); }
+  if (pin !== undefined && String(pin).trim()) { updates.push('pin = ?'); params.push(hashPin(String(pin).trim())); }
   if (active !== undefined) { updates.push('active = ?'); params.push(active ? 1 : 0); }
 
   if (updates.length === 0) {

@@ -40,6 +40,10 @@
         <label class="label">รหัสพนักงาน</label>
         <input id="code-input" type="text" class="inp" placeholder="เช่น 00174" autocomplete="off" autocapitalize="off" required>
       </div>
+      <div class="field">
+        <label class="label">รหัสผ่าน</label>
+        <input id="pin-input" type="password" class="inp" placeholder="รหัสผ่านที่แอดมินตั้งให้" autocomplete="off" required>
+      </div>
       <p id="login-error" class="error-msg"></p>
       <button type="submit" class="btn-primary" id="login-btn">เข้าสู่ระบบ</button>
     </form>
@@ -426,6 +430,14 @@
           <option value="admin">แอดมิน</option>
         </select>
       </div>
+    </div>
+    <div class="field">
+      <label class="label">ตำแหน่ง</label>
+      <input type="text" id="editUserPosition" class="inp" placeholder="เช่น เจ้าหน้าที่เทคนิค อาวุโส">
+    </div>
+    <div class="field">
+      <label class="label">รหัสผ่าน (พาสเข้าใช้งาน)</label>
+      <input type="text" id="editUserPin" class="inp" placeholder="ไม่กรอก ตั้งเป็นรหัสพนักงานอัตโนมัติ" autocomplete="off">
     </div>
     <div class="modal-actions">
       <button onclick="closeUserModal()" class="btn-cancel">ยกเลิก</button>

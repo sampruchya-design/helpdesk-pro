@@ -1,8 +1,13 @@
 const initSqlJs = require('sql.js');
 const path = require('path');
 const fs = require('fs');
+const crypto = require('crypto');
 
 const DB_PATH = path.join(__dirname, 'data', 'database.db');
+
+function hashPin(pin) {
+  return crypto.createHash('sha256').update(String(pin)).digest('hex');
+}
 
 let db = null;
 let dirty = false;
@@ -150,6 +155,15 @@ function initSchema() {
 
   markDirty();
   seedDefaults();
+  backfillUserPins();
+}
+
+function backfillUserPins() {
+  // ผู้ใช้เก่าที่ยังไม่มีพาส → ตั้งค่าพาสเริ่มต้น = รหัสพนักงานของตัวเอง (แอดมินเปลี่ยนทีหลังได้)
+  const rows = getAll("SELECT id, code FROM users WHERE pin IS NULL OR pin = ''");
+  rows.forEach(r => {
+    db.run('UPDATE users SET pin = ? WHERE id = ?', [hashPin(r.code), r.id]);
+  });
 }
 
 function ensureUserSchema() {
@@ -259,4 +273,4 @@ function generateTicketNo() {
   return `RQ-${date}-${seq}`;
 }
 
-module.exports = { getDB, runQuery, getAll, getOne, getLastInsertId, generateTicketNo, saveDB, getSetting, setSetting };
+module.exports = { getDB, runQuery, getAll, getOne, getLastInsertId, generateTicketNo, saveDB, getSetting, setSetting, hashPin };

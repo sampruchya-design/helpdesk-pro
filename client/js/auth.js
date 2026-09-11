@@ -9,11 +9,17 @@ const LOCATION_NEEDS_DETAIL = ['สถานีเสริม', 'อื่น�
 async function handleLogin(e) {
   e.preventDefault();
   const code = document.getElementById('code-input').value.trim();
+  const pin = document.getElementById('pin-input').value.trim();
   const errEl = document.getElementById('login-error');
 
   if (!code) {
     errEl.style.display = 'block';
     errEl.textContent = 'กรุณากรอกรหัสพนักงาน';
+    return;
+  }
+  if (!pin) {
+    errEl.style.display = 'block';
+    errEl.textContent = 'กรุณากรอกรหัสผ่าน';
     return;
   }
 
@@ -22,7 +28,7 @@ async function handleLogin(e) {
   btn.textContent = '⏳ กำลังตรวจ...';
 
   try {
-    const res = await API.post('/api/auth/login', { code });
+    const res = await API.post('/api/auth/login', { code, pin });
     localStorage.setItem('token', res.token);
     localStorage.setItem('currentUser', JSON.stringify(res.user));
     currentUser = res.user;
