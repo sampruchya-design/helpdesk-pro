@@ -194,6 +194,7 @@ function ensureTicketSchema() {
   if (!names.includes('parts_cost')) db.run('ALTER TABLE tickets ADD COLUMN parts_cost REAL DEFAULT 0');
   if (!names.includes('labor_cost')) db.run('ALTER TABLE tickets ADD COLUMN labor_cost REAL DEFAULT 0');
   if (!names.includes('photos')) db.run("ALTER TABLE tickets ADD COLUMN photos TEXT DEFAULT '[]'");
+  if (!names.includes('photos_done')) db.run("ALTER TABLE tickets ADD COLUMN photos_done TEXT DEFAULT '[]'");
 }
 
 function seedDefaults() {

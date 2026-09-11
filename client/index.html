@@ -402,14 +402,24 @@
       <textarea id="u_notes" class="inp" rows="2" style="resize:none;" placeholder="หมายเหตุ..."></textarea>
     </div>
     <div class="field">
-      <label class="label">รูปภาพ <span style="color:var(--text-muted);font-size:11px;font-weight:400;">— สูงสุด 5 รูป (เลือกใหม่ = เปลี่ยนชุดทั้งหมด)</span></label>
+      <label class="label">📸 รูปตอนแจ้ง <span style="color:var(--text-muted);font-size:11px;font-weight:400;">— เลือกใหม่ = เปลี่ยนชุดทั้งหมด (สูงสุด 5)</span></label>
       <div id="u_photoDisplay" style="margin-bottom:8px;display:flex;gap:10px;flex-wrap:wrap;align-items:flex-start;"></div>
       <input type="file" id="u_photoFile" accept="image/*" multiple class="inp" style="padding:8px;">
       <p class="page-sub" id="u_photoCount" style="margin:6px 0 0;font-size:12px;"></p>
       <label style="display:flex;align-items:center;gap:6px;margin-top:8px;font-size:12px;color:var(--text-muted);cursor:pointer;">
-        <input type="checkbox" id="u_photoRemove" style="cursor:pointer;"> เอารูปทั้งหมดออก (ลบรูปเดิม)
+        <input type="checkbox" id="u_photoRemove" style="cursor:pointer;"> เอารูปตอนแจ้งทั้งหมดออก
       </label>
       <div id="u_photoPreview" style="display:none;margin-top:10px;gap:10px;flex-wrap:wrap;"></div>
+    </div>
+    <div class="field" style="border-top:1px solid rgba(255,255,255,0.08);padding-top:12px;">
+      <label class="label">📷 รูปตอนเสร็จ / ผลงาน <span style="color:var(--text-muted);font-size:11px;font-weight:400;">— เลือกใหม่ = เปลี่ยนชุดทั้งหมด (สูงสุด 5)</span></label>
+      <div id="u_photoDoneDisplay" style="margin-bottom:8px;display:flex;gap:10px;flex-wrap:wrap;align-items:flex-start;"></div>
+      <input type="file" id="u_photoDoneFile" accept="image/*" multiple class="inp" style="padding:8px;">
+      <p class="page-sub" id="u_photoDoneCount" style="margin:6px 0 0;font-size:12px;"></p>
+      <label style="display:flex;align-items:center;gap:6px;margin-top:8px;font-size:12px;color:var(--text-muted);cursor:pointer;">
+        <input type="checkbox" id="u_photoDoneRemove" style="cursor:pointer;"> เอารูปตอนเสร็จทั้งหมดออก
+      </label>
+      <div id="u_photoDonePreview" style="display:none;margin-top:10px;gap:10px;flex-wrap:wrap;"></div>
     </div>
     <div class="modal-actions">
       <button onclick="closeUpdateModal()" class="btn-cancel">ยกเลิก</button>

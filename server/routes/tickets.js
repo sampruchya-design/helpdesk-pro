@@ -4,13 +4,18 @@ const { authMiddleware, adminOnly } = require('../middleware/auth');
 
 const router = express.Router();
 
-// Normalize photos columns → array (รองรับงานเก่า 1 รูป + งานใหม่หลายรูป)
+// Normalize photos columns → array (รูปตอนแจ้ง = photos, รูปตอนเสร็จ = photos_done)
+function parseCol(v) {
+  if (!v) return [];
+  try { const a = JSON.parse(v); return Array.isArray(a) ? a : []; } catch (e) { return []; }
+}
 function normPhotos(t) {
   if (!t) return t;
-  let arr = [];
-  if (t.photos) { try { arr = JSON.parse(t.photos); } catch (e) { arr = []; } }
-  if ((!arr || !arr.length) && t.photo_url) arr = [t.photo_url];
-  t.photos = (arr || []).filter(Boolean);
+  const arr = parseCol(t.photos);
+  const done = parseCol(t.photos_done);
+  if (!arr.length && t.photo_url) arr.push(t.photo_url);
+  t.photos = arr.filter(Boolean);
+  t.photos_done = done.filter(Boolean);
   t.photo_url = t.photos[0] || null;
   return t;
 }
@@ -110,7 +115,7 @@ router.put('/:id', authMiddleware, (req, res) => {
   const ticket = getOne('SELECT * FROM tickets WHERE id = ?', [Number(req.params.id)]);
   if (!ticket) return res.status(404).json({ status: 'error', message: 'ไม่พบงาน' });
 
-  const { status, technician, cost, notes, category, priority, location, asset_id, title, photo_url, photos } = req.body;
+  const { status, technician, cost, notes, category, priority, location, asset_id, title, photo_url, photos, photos_done } = req.body;
 
   let updates = [];
   let params = [];
@@ -130,7 +135,7 @@ router.put('/:id', authMiddleware, (req, res) => {
   if (location !== undefined) { updates.push('location = ?'); params.push(location); }
   if (asset_id !== undefined) { updates.push('asset_id = ?'); params.push(asset_id); }
   if (title !== undefined) { updates.push('title = ?'); params.push(title); }
-  // รูปภาพ: ส่ง photos (array) = ตั้งชุดรูปใหม่, ส่ง photo_url = เดิม 1 รูป, ลบได้ด้วย photos:[] หรือ photo_url:null — ไม่ส่ง = เก็บรูปเดิม
+  // รูปตอนแจ้ง: ส่ง photos (array) = ตั้งชุดใหม่, ส่ง photo_url = เดิม 1 รูป, ลบด้วย photos:[] หรือ photo_url:null — ไม่ส่ง = เก็บเดิม
   if (Array.isArray(photos)) {
     const list = photos.filter(Boolean).slice(0, 5);
     updates.push('photos = ?'); params.push(JSON.stringify(list));
@@ -139,6 +144,11 @@ router.put('/:id', authMiddleware, (req, res) => {
     const list = photo_url ? [String(photo_url).trim()] : [];
     updates.push('photos = ?'); params.push(JSON.stringify(list));
     updates.push('photo_url = ?'); params.push(list[0] || null);
+  }
+  // รูปตอนเสร็จ/ผลงาน: photos_done (array) — ส่ง []/ลบชุด, ไม่ส่ง = เก็บเดิม
+  if (Array.isArray(photos_done)) {
+    const list = photos_done.filter(Boolean).slice(0, 5);
+    updates.push('photos_done = ?'); params.push(JSON.stringify(list));
   }
 
   updates.push("updated_at = datetime('now','localtime')");

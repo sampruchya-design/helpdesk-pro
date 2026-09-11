@@ -89,18 +89,17 @@ function renderList() {
 }
 
 // ===== Update Modal =====
-function photosOf(r) {
-  const arr = Array.isArray(r.photos) ? r.photos : (r.photo_url ? [r.photo_url] : []);
-  return (arr || []).filter(Boolean).slice(0, 5);
-}
-function thumbsOf(r) { return photosOf(r).length; }
+function cPhotos(r) { return (Array.isArray(r.photos) && r.photos.length) ? r.photos : (r.photo_url ? [r.photo_url] : []); }
+function dPhotos(r) { return Array.isArray(r.photos_done) ? r.photos_done : []; }
+function thumbsOf(r) { return cPhotos(r).length + dPhotos(r).length; }
 function renderThumbs(r) {
-  const ph = photosOf(r);
-  if (!ph.length) return '';
-  return `<div style="margin-top:6px;display:flex;gap:5px;align-items:center;">
-    ${ph.slice(0, 3).map(u => `<a href="${u}" target="_blank" rel="noopener"><img src="${u}" alt="รูปแนบ" style="width:52px;height:52px;object-fit:cover;border-radius:8px;border:1px solid rgba(255,255,255,0.15);" title="เปิดรูปแนบ"></a>`).join('')}
-    ${ph.length > 3 ? `<span style="font-size:11px;color:var(--text-muted);">+${ph.length - 3}</span>` : ''}
-  </div>`;
+  const c = cPhotos(r).slice(0, 5);
+  const d = dPhotos(r).slice(0, 5);
+  if (!c.length && !d.length) return '';
+  const thumb = (u, extra) => `<a href="${u}" target="_blank" rel="noopener"><img src="${u}" alt="รูปแนบ" style="width:52px;height:52px;object-fit:cover;border-radius:8px;border:1px solid rgba(255,255,255,0.15);${extra || ''}" title="เปิดรูปแนบ"></a>`;
+  const cHtml = c.length ? `<div style="display:flex;gap:5px;align-items:center;">${c.slice(0, 3).map(u => thumb(u)).join('')}${c.length > 3 ? `<span style="font-size:11px;color:var(--text-muted);">+${c.length - 3}</span>` : ''}</div>` : '';
+  const dHtml = d.length ? `<div style="display:flex;gap:5px;align-items:center;margin-top:4px;">${d.slice(0, 3).map(u => thumb(u, 'border-color:rgba(79,214,154,0.55);')).join('')}${d.length > 3 ? `<span style="font-size:11px;color:var(--text-muted);">+${d.length - 3}</span>` : ''}<span style="font-size:10px;color:var(--green);border:1px solid rgba(79,214,154,0.45);padding:1px 6px;border-radius:999px;margin-left:2px;">ผลงาน</span></div>` : '';
+  return `<div style="margin-top:6px;">${cHtml}${dHtml}</div>`;
 }
 
 function selectStatus(s) {
@@ -124,27 +123,79 @@ function openUpdateModal(id) {
   document.getElementById('u_notes').value = r.notes || '';
   selectStatus(r.status || 'รอดำเนินการ');
 
-  // รูปภาพ
+  // รูปตอนแจ้ง
   const disp = document.getElementById('u_photoDisplay');
-  const ph = photosOf(r);
-  disp.innerHTML = ph.length
-    ? ph.map(u => `<img src="${u}" alt="รูปเดิม" style="max-width:86px;max-height:86px;object-fit:cover;border-radius:8px;border:1px solid rgba(255,255,255,0.15);cursor:pointer;" onclick="window.open('${u}','_blank')" title="เปิดรูปขยาย">`).join('') +
-      `<span style="font-size:12px;color:var(--text-muted);align-self:center;">(${ph.length} รูป)</span>`
-    : `<span style="font-size:12px;color:var(--text-muted);">ยังไม่มีรูป</span>`;
-  document.getElementById('u_photoFile').value = '';
+  const c = cPhotos(r);
+  disp.innerHTML = c.length
+    ? c.map(u => `<img src="${u}" alt="รูปตอนแจ้ง" style="max-width:86px;max-height:86px;object-fit:cover;border-radius:8px;border:1px solid rgba(255,255,255,0.15);cursor:pointer;" onclick="window.open('${u}','_blank')" title="เปิดรูปขยาย">`).join('') +
+      `<span style="font-size:12px;color:var(--text-muted);align-self:center;">(${c.length} รูป)</span>`
+    : `<span style="font-size:12px;color:var(--text-muted);">ยังไม่มีรูปตอนแจ้ง</span>`;
+
+  // รูปตอนเสร็จ / ผลงาน
+  const ddisp = document.getElementById('u_photoDoneDisplay');
+  const d = dPhotos(r);
+  ddisp.innerHTML = d.length
+    ? d.map(u => `<img src="${u}" alt="รูปผลงาน" style="max-width:86px;max-height:86px;object-fit:cover;border-radius:8px;border:2px solid rgba(79,214,154,0.55);cursor:pointer;" onclick="window.open('${u}','_blank')" title="เปิดรูปขยาย">`).join('') +
+      `<span style="font-size:12px;color:var(--green);align-self:center;">(${d.length} รูป)</span>`
+    : `<span style="font-size:12px;color:var(--text-muted);">ยังไม่มีรูปตอนเสร็จ</span>`;
+
+  ['u_photoFile', 'u_photoDoneFile'].forEach(id => { document.getElementById(id).value = ''; });
   document.getElementById('u_photoRemove').checked = false;
+  document.getElementById('u_photoDoneRemove').checked = false;
   clearUPhotoPreview();
+  clearUPhotoDonePreview();
 
   document.getElementById('updateModal').style.display = 'flex';
 }
 
-let uPhotoPreviews = [];
+let uPhotoPreviews = [], uPhotoDonePreviews = [];
+
+function buildPhotoPreviews(fileList, box, store) {
+  const files = Array.from(fileList || []).slice(0, 5);
+  box.innerHTML = '';
+  store.length = 0;
+  if (!files.length) { box.style.display = 'none'; return; }
+  files.forEach((file, i) => {
+    const rd = new FileReader();
+    rd.onload = e => {
+      const wrap = document.createElement('div');
+      wrap.style.cssText = 'position:relative;';
+      const img = document.createElement('img');
+      img.src = e.target.result;
+      img.style.cssText = 'max-width:100px;max-height:100px;object-fit:cover;border-radius:8px;border:1px solid rgba(255,255,255,0.15);';
+      const rm = document.createElement('button');
+      rm.type = 'button'; rm.textContent = '✕'; rm.title = 'เอารูปออก';
+      rm.style.cssText = 'position:absolute;top:-6px;right:-6px;width:22px;height:22px;border-radius:50%;background:#11161f;border:1px solid rgba(255,255,255,0.25);color:#fff;font-size:11px;cursor:pointer;line-height:1;';
+      rm.onclick = () => rebuildPhotos(box, store, i);
+      wrap.appendChild(img); wrap.appendChild(rm);
+      box.appendChild(wrap);
+    };
+    rd.readAsDataURL(file);
+    store.push({ file });
+  });
+  box.style.display = 'flex';
+}
+
+function rebuildPhotos(box, store, idx) {
+  store.splice(idx, 1);
+  buildPhotoPreviews(store.map(s => s.file), box, store);
+}
+
 function clearUPhotoPreview() {
   const box = document.getElementById('u_photoPreview');
   uPhotoPreviews = [];
   box.innerHTML = '';
   box.style.display = 'none';
+  document.getElementById('u_photoFile').value = '';
   document.getElementById('u_photoRemove').checked = false;
+}
+function clearUPhotoDonePreview() {
+  const box = document.getElementById('u_photoDonePreview');
+  uPhotoDonePreviews = [];
+  box.innerHTML = '';
+  box.style.display = 'none';
+  document.getElementById('u_photoDoneFile').value = '';
+  document.getElementById('u_photoDoneRemove').checked = false;
 }
 
 function closeUpdateModal() { document.getElementById('updateModal').style.display = 'none'; }
@@ -152,45 +203,21 @@ function closeUpdateModal() { document.getElementById('updateModal').style.displ
 document.addEventListener('DOMContentLoaded', () => {
   const uf = document.getElementById('u_photoFile');
   if (uf) uf.addEventListener('change', function () {
-    const files = Array.from(this.files || []).slice(0, 5);
-    const box = document.getElementById('u_photoPreview');
-    const count = document.getElementById('u_photoCount');
-    box.innerHTML = '';
-    uPhotoPreviews = [];
-    if (!files.length) { box.style.display = 'none'; count.textContent = ''; document.getElementById('u_photoRemove').checked = false; return; }
-
-    files.forEach((file, i) => {
-      const rd = new FileReader();
-      rd.onload = e => {
-        const wrap = document.createElement('div');
-        wrap.style.cssText = 'position:relative;';
-        const img = document.createElement('img');
-        img.src = e.target.result;
-        img.style.cssText = 'max-width:100px;max-height:100px;object-fit:cover;border-radius:8px;border:1px solid rgba(255,255,255,0.15);';
-        const rm = document.createElement('button');
-        rm.type = 'button'; rm.textContent = '✕'; rm.title = 'เอารูปออก';
-        rm.style.cssText = 'position:absolute;top:-6px;right:-6px;width:22px;height:22px;border-radius:50%;background:#11161f;border:1px solid rgba(255,255,255,0.25);color:#fff;font-size:11px;cursor:pointer;line-height:1;';
-        rm.onclick = () => removeUPhotoPreview(i);
-        wrap.appendChild(img); wrap.appendChild(rm);
-        box.appendChild(wrap);
-      };
-      rd.readAsDataURL(file);
-      uPhotoPreviews.push({ file });
-    });
-    box.style.display = 'flex';
+    buildPhotoPreviews(this.files, document.getElementById('u_photoPreview'), uPhotoPreviews);
     document.getElementById('u_photoRemove').checked = false;
-    count.textContent = `เลือกรูปใหม่ ${files.length}/5 (จะแทนชุดเดิมทั้งหมด)`;
+    document.getElementById('u_photoCount').textContent = this.files.length
+      ? `เลือกรูปตอนแจ้งใหม่ ${Math.min(this.files.length, 5)}/5 (จะแทนชุดเดิมทั้งหมด)`
+      : '';
+  });
+  const df = document.getElementById('u_photoDoneFile');
+  if (df) df.addEventListener('change', function () {
+    buildPhotoPreviews(this.files, document.getElementById('u_photoDonePreview'), uPhotoDonePreviews);
+    document.getElementById('u_photoDoneRemove').checked = false;
+    document.getElementById('u_photoDoneCount').textContent = this.files.length
+      ? `เลือกรูปผลงานใหม่ ${Math.min(this.files.length, 5)}/5 (จะแทนชุดเดิมทั้งหมด)`
+      : '';
   });
 });
-
-function removeUPhotoPreview(i) {
-  uPhotoPreviews.splice(i, 1);
-  const pf = document.getElementById('u_photoFile');
-  const dt = new DataTransfer();
-  uPhotoPreviews.forEach(p => dt.items.add(p.file));
-  pf.files = dt.files;
-  pf.dispatchEvent(new Event('change'));
-}
 
 async function saveUpdate() {
   const btn = document.getElementById('updateBtn');
@@ -206,15 +233,25 @@ async function saveUpdate() {
   };
 
   try {
-    // รูปใหม่ (หลายรูป) / เอารูปเดิมออก / เก็บรูปเดิม
-    const fileInput = document.getElementById('u_photoFile');
-    if (fileInput.files && fileInput.files.length) {
+    // รูปตอนแจ้ง: ไฟล์ใหม่ = แทนชุด, เช็กลบ = ล้างชุด, ไม่ทำ = เก็บเดิม
+    const cFile = document.getElementById('u_photoFile');
+    if (cFile.files && cFile.files.length) {
       const formData = new FormData();
-      Array.from(fileInput.files).slice(0, 5).forEach(f => formData.append('photos', f));
+      Array.from(cFile.files).slice(0, 5).forEach(f => formData.append('photos', f));
       const up = await API.upload('/api/upload', formData);
       payload.photos = up.urls || [];
     } else if (document.getElementById('u_photoRemove').checked) {
       payload.photos = [];
+    }
+    // รูปตอนเสร็จ/ผลงาน
+    const dFile = document.getElementById('u_photoDoneFile');
+    if (dFile.files && dFile.files.length) {
+      const formData = new FormData();
+      Array.from(dFile.files).slice(0, 5).forEach(f => formData.append('photos', f));
+      const up = await API.upload('/api/upload', formData);
+      payload.photos_done = up.urls || [];
+    } else if (document.getElementById('u_photoDoneRemove').checked) {
+      payload.photos_done = [];
     }
 
     await API.put(`/api/tickets/${id}`, payload);
