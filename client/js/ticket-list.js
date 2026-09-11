@@ -76,7 +76,8 @@ function renderList() {
       <td style="padding:14px 16px;max-width:260px;">
         <div style="font-size:13px;color:#e2eaf7;white-space:normal;line-height:1.4;">${r.title || '-'}</div>
         ${renderThumbs(r)}
-        <div style="margin-top:${thumbsOf(r) ? '6px' : '4px'};display:flex;gap:4px;flex-wrap:wrap;">
+        ${r.notes ? `<div style="margin-top:${thumbsOf(r) ? '6px' : '4px'};font-size:12px;color:var(--green);white-space:normal;line-height:1.4;">🔧 การแก้ไขตรวจซ่อม: ${r.notes}</div>` : ''}
+        <div style="margin-top:${thumbsOf(r) || r.notes ? '6px' : '4px'};display:flex;gap:4px;flex-wrap:wrap;">
           <span class="chip" style="background:rgba(124,58,237,0.08);color:rgba(168,85,247,0.8);border-color:rgba(124,58,237,0.15);">${r.category || '-'}</span>
           <span class="chip" style="background:rgba(0,212,255,0.04);color:var(--text-muted);">👤 ${r.reporter_name || '-'}</span>
         </div>
