@@ -124,6 +124,7 @@ async function notifyStatusUpdate(ticket, oldStatus) {
     `${statusEmoji[oldStatus] || '❓'} ${oldStatus} → ${statusEmoji[ticket.status] || '❓'} ${ticket.status}`,
     ticket.technician && ticket.technician !== '-' ? `👨‍🔧 ช่าง: ${ticket.technician}` : '',
     ticket.cost > 0 ? `💰 ค่าใช้จ่าย: ฿${Number(ticket.cost).toLocaleString()}` : '',
+    ticket.notes ? `📝 บันทึกเพิ่มเติม: ${ticket.notes}` : '',
     `📝 ${ticket.title}`,
     photoLinks(ticket.photos_done, '📸 รูปตอนเสร็จ/ผลงาน'),
     photoLinks(ticket.photos, '📎 รูปตอนแจ้ง'),
