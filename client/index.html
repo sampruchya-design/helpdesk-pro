@@ -204,12 +204,10 @@
               <textarea id="title" required rows="4" class="inp" style="resize:none;" placeholder="อธิบายอาการเสีย หรือปัญหาที่พบ..."></textarea>
             </div>
             <div class="field">
-              <label class="label">แนบรูปภาพ (ไม่บังคับ)</label>
-              <input type="file" id="photoFile" accept="image/*" class="inp" style="padding:8px;">
-              <div id="photoPreview" style="display:none;margin-top:10px;gap:10px;align-items:flex-start;">
-                <img id="photoPreviewImg" alt="ตัวอย่างรูป" style="max-width:100%;max-height:170px;border-radius:10px;border:1px solid rgba(255,255,255,0.15);">
-                <button type="button" onclick="clearPhotoPreview()" class="btn-cancel-sm">✕ เอารูปออก</button>
-              </div>
+              <label class="label">แนบรูปภาพ (ไม่บังคับ) <span style="color:var(--text-muted);font-size:11px;font-weight:400;">— สูงสุด 5 รูป</span></label>
+              <input type="file" id="photoFile" accept="image/*" multiple class="inp" style="padding:8px;">
+              <p class="page-sub" id="photoCount" style="margin:6px 0 0;font-size:12px;">เลือกได้สูงสุด 5 รูป</p>
+              <div id="photoPreview" style="display:none;margin-top:10px;gap:10px;flex-wrap:wrap;"></div>
             </div>
             <button type="submit" id="submitBtn" class="btn-primary">✨ บันทึกงานแจ้งซ่อม</button>
           </form>
@@ -404,16 +402,14 @@
       <textarea id="u_notes" class="inp" rows="2" style="resize:none;" placeholder="หมายเหตุ..."></textarea>
     </div>
     <div class="field">
-      <label class="label">รูปภาพ</label>
-      <div id="u_photoDisplay" style="margin-bottom:8px;display:flex;gap:10px;align-items:flex-start;flex-wrap:wrap;"></div>
-      <input type="file" id="u_photoFile" accept="image/*" class="inp" style="padding:8px;">
+      <label class="label">รูปภาพ <span style="color:var(--text-muted);font-size:11px;font-weight:400;">— สูงสุด 5 รูป (เลือกใหม่ = เปลี่ยนชุดทั้งหมด)</span></label>
+      <div id="u_photoDisplay" style="margin-bottom:8px;display:flex;gap:10px;flex-wrap:wrap;align-items:flex-start;"></div>
+      <input type="file" id="u_photoFile" accept="image/*" multiple class="inp" style="padding:8px;">
+      <p class="page-sub" id="u_photoCount" style="margin:6px 0 0;font-size:12px;"></p>
       <label style="display:flex;align-items:center;gap:6px;margin-top:8px;font-size:12px;color:var(--text-muted);cursor:pointer;">
-        <input type="checkbox" id="u_photoRemove" style="cursor:pointer;"> เอารูปออก (ลบรูปที่แนบไว้เดิม)
+        <input type="checkbox" id="u_photoRemove" style="cursor:pointer;"> เอารูปทั้งหมดออก (ลบรูปเดิม)
       </label>
-      <div id="u_photoPreview" style="display:none;margin-top:10px;gap:10px;align-items:flex-start;">
-        <img id="u_photoPreviewImg" alt="รูปใหม่" style="max-width:100%;max-height:140px;border-radius:10px;border:1px solid rgba(255,255,255,0.15);">
-        <button type="button" onclick="clearUPhotoPreview()" class="btn-cancel-sm">✕ เอารูปที่เลือกออก</button>
-      </div>
+      <div id="u_photoPreview" style="display:none;margin-top:10px;gap:10px;flex-wrap:wrap;"></div>
     </div>
     <div class="modal-actions">
       <button onclick="closeUpdateModal()" class="btn-cancel">ยกเลิก</button>

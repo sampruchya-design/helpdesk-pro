@@ -78,24 +78,68 @@ function getFinalLocation() {
   return val;
 }
 
+let photoPreviews = [];
+
 document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('repairForm').addEventListener('submit', handleSubmitForm);
   const pf = document.getElementById('photoFile');
   if (pf) pf.addEventListener('change', function () {
-    const box = document.getElementById('photoPreview');
-    const img = document.getElementById('photoPreviewImg');
-    if (this.files && this.files[0]) {
-      const rd = new FileReader();
-      rd.onload = e => { img.src = e.target.result; box.style.display = 'flex'; };
-      rd.readAsDataURL(this.files[0]);
-    } else { box.style.display = 'none'; img.src = ''; }
+    renderPhotoPreviews(this.files);
   });
 });
 
+function renderPhotoPreviews(fileList) {
+  const files = Array.from(fileList || []).slice(0, 5);
+  const box = document.getElementById('photoPreview');
+  const count = document.getElementById('photoCount');
+  photoPreviews = [];
+  box.innerHTML = '';
+
+  if (!files.length) {
+    box.style.display = 'none';
+    count.textContent = 'เลือกได้สูงสุด 5 รูป';
+    return;
+  }
+
+  files.forEach((file, i) => {
+    const rd = new FileReader();
+    rd.onload = e => {
+      const wrap = document.createElement('div');
+      wrap.style.cssText = 'position:relative;';
+      const img = document.createElement('img');
+      img.src = e.target.result;
+      img.style.cssText = 'max-width:120px;max-height:120px;object-fit:cover;border-radius:10px;border:1px solid rgba(255,255,255,0.15);';
+      const rm = document.createElement('button');
+      rm.type = 'button';
+      rm.textContent = '✕';
+      rm.title = 'เอารูปออก';
+      rm.style.cssText = 'position:absolute;top:-6px;right:-6px;width:22px;height:22px;border-radius:50%;background:#11161f;border:1px solid rgba(255,255,255,0.25);color:#fff;font-size:11px;cursor:pointer;line-height:1;';
+      rm.onclick = () => removePhotoPreview(i);
+      wrap.appendChild(img);
+      wrap.appendChild(rm);
+      box.appendChild(wrap);
+    };
+    rd.readAsDataURL(file);
+    photoPreviews.push({ file });
+  });
+
+  box.style.display = 'flex';
+  count.textContent = `เลือกรูป ${files.length}/5`;
+}
+
+function removePhotoPreview(i) {
+  photoPreviews.splice(i, 1);
+  const pf = document.getElementById('photoFile');
+  const dt = new DataTransfer();
+  photoPreviews.forEach(p => dt.items.add(p.file));
+  pf.files = dt.files;
+  renderPhotoPreviews(pf.files);
+}
+
 function clearPhotoPreview() {
   document.getElementById('photoFile').value = '';
-  document.getElementById('photoPreview').style.display = 'none';
-  document.getElementById('photoPreviewImg').src = '';
+  photoPreviews = [];
+  renderPhotoPreviews([]);
 }
 
 async function handleSubmitForm(e) {
@@ -105,15 +149,15 @@ async function handleSubmitForm(e) {
   btn.textContent = '⏳ กำลังบันทึก...';
 
   try {
-    let photo_url = null;
+    let photos = [];
 
-    // Upload photo if present
+    // Upload multiple photos (สูงสุด 5)
     const fileInput = document.getElementById('photoFile');
-    if (fileInput.files && fileInput.files[0]) {
+    if (fileInput.files && fileInput.files.length) {
       const formData = new FormData();
-      formData.append('photo', fileInput.files[0]);
+      Array.from(fileInput.files).slice(0, 5).forEach(f => formData.append('photos', f));
       const up = await API.upload('/api/upload', formData);
-      photo_url = up.url;
+      photos = up.urls || [];
     }
 
     const payload = {
@@ -125,7 +169,7 @@ async function handleSubmitForm(e) {
       asset_id: document.getElementById('assetId').value.trim() || '-',
       title: document.getElementById('title').value,
       reporter_name: document.getElementById('reporterName').value.trim() || currentUser.name,
-      photo_url
+      photos
     };
 
     const res = await API.post('/api/tickets', payload);

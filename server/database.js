@@ -193,6 +193,7 @@ function ensureTicketSchema() {
   const names = r.length && r[0] ? r[0].values.map(v => v[1]) : [];
   if (!names.includes('parts_cost')) db.run('ALTER TABLE tickets ADD COLUMN parts_cost REAL DEFAULT 0');
   if (!names.includes('labor_cost')) db.run('ALTER TABLE tickets ADD COLUMN labor_cost REAL DEFAULT 0');
+  if (!names.includes('photos')) db.run("ALTER TABLE tickets ADD COLUMN photos TEXT DEFAULT '[]'");
 }
 
 function seedDefaults() {

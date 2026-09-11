@@ -75,8 +75,8 @@ function renderList() {
       </td>
       <td style="padding:14px 16px;max-width:260px;">
         <div style="font-size:13px;color:#e2eaf7;white-space:normal;line-height:1.4;">${r.title || '-'}</div>
-        ${r.photo_url ? `<div style="margin-top:6px;"><a href="${r.photo_url}" target="_blank" rel="noopener"><img src="${r.photo_url}" alt="รูปแนบ" style="width:52px;height:52px;object-fit:cover;border-radius:8px;border:1px solid rgba(255,255,255,0.15);" title="เปิดรูปแนบ"></a></div>` : ''}
-        <div style="margin-top:4px;display:flex;gap:4px;flex-wrap:wrap;${r.photo_url ? 'margin-left:0;' : ''}">
+        ${renderThumbs(r)}
+        <div style="margin-top:${thumbsOf(r) ? '6px' : '4px'};display:flex;gap:4px;flex-wrap:wrap;">
           <span class="chip" style="background:rgba(124,58,237,0.08);color:rgba(168,85,247,0.8);border-color:rgba(124,58,237,0.15);">${r.category || '-'}</span>
           <span class="chip" style="background:rgba(0,212,255,0.04);color:var(--text-muted);">👤 ${r.reporter_name || '-'}</span>
         </div>
@@ -89,6 +89,20 @@ function renderList() {
 }
 
 // ===== Update Modal =====
+function photosOf(r) {
+  const arr = Array.isArray(r.photos) ? r.photos : (r.photo_url ? [r.photo_url] : []);
+  return (arr || []).filter(Boolean).slice(0, 5);
+}
+function thumbsOf(r) { return photosOf(r).length; }
+function renderThumbs(r) {
+  const ph = photosOf(r);
+  if (!ph.length) return '';
+  return `<div style="margin-top:6px;display:flex;gap:5px;align-items:center;">
+    ${ph.slice(0, 3).map(u => `<a href="${u}" target="_blank" rel="noopener"><img src="${u}" alt="รูปแนบ" style="width:52px;height:52px;object-fit:cover;border-radius:8px;border:1px solid rgba(255,255,255,0.15);" title="เปิดรูปแนบ"></a>`).join('')}
+    ${ph.length > 3 ? `<span style="font-size:11px;color:var(--text-muted);">+${ph.length - 3}</span>` : ''}
+  </div>`;
+}
+
 function selectStatus(s) {
   document.getElementById('u_status').value = s;
   const classes = ['wait', 'doing', 'parts', 'out', 'done'];
@@ -112,9 +126,10 @@ function openUpdateModal(id) {
 
   // รูปภาพ
   const disp = document.getElementById('u_photoDisplay');
-  disp.innerHTML = r.photo_url
-    ? `<img src="${r.photo_url}" alt="รูปเดิม" style="max-width:120px;max-height:120px;object-fit:cover;border-radius:10px;border:1px solid rgba(255,255,255,0.15);cursor:pointer;" onclick="window.open('${r.photo_url}','_blank')" title="เปิดรูปเดิม (ขยาย)">
-       <span style="font-size:12px;color:var(--text-muted);align-self:center;">รูปเดิมของงานนี้</span>`
+  const ph = photosOf(r);
+  disp.innerHTML = ph.length
+    ? ph.map(u => `<img src="${u}" alt="รูปเดิม" style="max-width:86px;max-height:86px;object-fit:cover;border-radius:8px;border:1px solid rgba(255,255,255,0.15);cursor:pointer;" onclick="window.open('${u}','_blank')" title="เปิดรูปขยาย">`).join('') +
+      `<span style="font-size:12px;color:var(--text-muted);align-self:center;">(${ph.length} รูป)</span>`
     : `<span style="font-size:12px;color:var(--text-muted);">ยังไม่มีรูป</span>`;
   document.getElementById('u_photoFile').value = '';
   document.getElementById('u_photoRemove').checked = false;
@@ -123,11 +138,12 @@ function openUpdateModal(id) {
   document.getElementById('updateModal').style.display = 'flex';
 }
 
+let uPhotoPreviews = [];
 function clearUPhotoPreview() {
   const box = document.getElementById('u_photoPreview');
+  uPhotoPreviews = [];
+  box.innerHTML = '';
   box.style.display = 'none';
-  document.getElementById('u_photoPreviewImg').src = '';
-  box.querySelector('.btn-cancel-sm') && (box.querySelector('.btn-cancel-sm').style.display = '');
   document.getElementById('u_photoRemove').checked = false;
 }
 
@@ -136,15 +152,45 @@ function closeUpdateModal() { document.getElementById('updateModal').style.displ
 document.addEventListener('DOMContentLoaded', () => {
   const uf = document.getElementById('u_photoFile');
   if (uf) uf.addEventListener('change', function () {
+    const files = Array.from(this.files || []).slice(0, 5);
     const box = document.getElementById('u_photoPreview');
-    const img = document.getElementById('u_photoPreviewImg');
-    if (this.files && this.files[0]) {
+    const count = document.getElementById('u_photoCount');
+    box.innerHTML = '';
+    uPhotoPreviews = [];
+    if (!files.length) { box.style.display = 'none'; count.textContent = ''; document.getElementById('u_photoRemove').checked = false; return; }
+
+    files.forEach((file, i) => {
       const rd = new FileReader();
-      rd.onload = e => { img.src = e.target.result; box.style.display = 'flex'; document.getElementById('u_photoRemove').checked = false; };
-      rd.readAsDataURL(this.files[0]);
-    } else { box.style.display = 'none'; img.src = ''; }
+      rd.onload = e => {
+        const wrap = document.createElement('div');
+        wrap.style.cssText = 'position:relative;';
+        const img = document.createElement('img');
+        img.src = e.target.result;
+        img.style.cssText = 'max-width:100px;max-height:100px;object-fit:cover;border-radius:8px;border:1px solid rgba(255,255,255,0.15);';
+        const rm = document.createElement('button');
+        rm.type = 'button'; rm.textContent = '✕'; rm.title = 'เอารูปออก';
+        rm.style.cssText = 'position:absolute;top:-6px;right:-6px;width:22px;height:22px;border-radius:50%;background:#11161f;border:1px solid rgba(255,255,255,0.25);color:#fff;font-size:11px;cursor:pointer;line-height:1;';
+        rm.onclick = () => removeUPhotoPreview(i);
+        wrap.appendChild(img); wrap.appendChild(rm);
+        box.appendChild(wrap);
+      };
+      rd.readAsDataURL(file);
+      uPhotoPreviews.push({ file });
+    });
+    box.style.display = 'flex';
+    document.getElementById('u_photoRemove').checked = false;
+    count.textContent = `เลือกรูปใหม่ ${files.length}/5 (จะแทนชุดเดิมทั้งหมด)`;
   });
 });
+
+function removeUPhotoPreview(i) {
+  uPhotoPreviews.splice(i, 1);
+  const pf = document.getElementById('u_photoFile');
+  const dt = new DataTransfer();
+  uPhotoPreviews.forEach(p => dt.items.add(p.file));
+  pf.files = dt.files;
+  pf.dispatchEvent(new Event('change'));
+}
 
 async function saveUpdate() {
   const btn = document.getElementById('updateBtn');
@@ -160,15 +206,15 @@ async function saveUpdate() {
   };
 
   try {
-    // รูปใหม่
+    // รูปใหม่ (หลายรูป) / เอารูปเดิมออก / เก็บรูปเดิม
     const fileInput = document.getElementById('u_photoFile');
-    if (fileInput.files && fileInput.files[0]) {
+    if (fileInput.files && fileInput.files.length) {
       const formData = new FormData();
-      formData.append('photo', fileInput.files[0]);
+      Array.from(fileInput.files).slice(0, 5).forEach(f => formData.append('photos', f));
       const up = await API.upload('/api/upload', formData);
-      payload.photo_url = up.url;
+      payload.photos = up.urls || [];
     } else if (document.getElementById('u_photoRemove').checked) {
-      payload.photo_url = null;
+      payload.photos = [];
     }
 
     await API.put(`/api/tickets/${id}`, payload);

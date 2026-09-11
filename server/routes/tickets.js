@@ -4,6 +4,17 @@ const { authMiddleware, adminOnly } = require('../middleware/auth');
 
 const router = express.Router();
 
+// Normalize photos columns → array (รองรับงานเก่า 1 รูป + งานใหม่หลายรูป)
+function normPhotos(t) {
+  if (!t) return t;
+  let arr = [];
+  if (t.photos) { try { arr = JSON.parse(t.photos); } catch (e) { arr = []; } }
+  if ((!arr || !arr.length) && t.photo_url) arr = [t.photo_url];
+  t.photos = (arr || []).filter(Boolean);
+  t.photo_url = t.photos[0] || null;
+  return t;
+}
+
 // GET /api/tickets — list all (with filters)
 router.get('/', authMiddleware, (req, res) => {
   const { status, search, page = 1, limit = 50 } = req.query;
@@ -27,7 +38,7 @@ router.get('/', authMiddleware, (req, res) => {
   const tickets = getAll(
     `SELECT * FROM tickets ${whereClause} ORDER BY created_at DESC LIMIT ? OFFSET ?`,
     [...params, Number(limit), offset]
-  );
+  ).map(normPhotos);
 
   res.json({ status: 'success', tickets, total: total.c, page: Number(page), limit: Number(limit) });
 });
@@ -36,19 +47,24 @@ router.get('/', authMiddleware, (req, res) => {
 router.get('/:id', authMiddleware, (req, res) => {
   const ticket = getOne('SELECT * FROM tickets WHERE id = ?', [Number(req.params.id)]);
   if (!ticket) return res.status(404).json({ status: 'error', message: 'ไม่พบงาน' });
-  res.json({ status: 'success', ticket });
+  res.json({ status: 'success', ticket: normPhotos(ticket) });
 });
 
 // POST /api/tickets — create new
 router.post('/', authMiddleware, (req, res) => {
   const {
     category, category_detail, priority, location, location_detail,
-    asset_id, title, photo_url, reporter_name
+    asset_id, title, photo_url, photos, reporter_name
   } = req.body;
 
   if (!category || !location || !title) {
     return res.status(400).json({ status: 'error', message: 'กรุณากรอกข้อมูลให้ครบถ้วน' });
   }
+
+  const photoList = Array.isArray(photos)
+    ? photos.filter(Boolean).slice(0, 5)
+    : (photo_url ? [photo_url] : []);
+  const photoJson = JSON.stringify(photoList);
 
   const ticket_no = generateTicketNo();
   const final_category = category_detail ? `${category} — ${category_detail}` : category;
@@ -57,14 +73,14 @@ router.post('/', authMiddleware, (req, res) => {
 
   const insertParams = [ticket_no, req.user.id, rep_name, final_category, category_detail || null,
     priority || 'ปกติ', final_location, location_detail || null,
-    asset_id || null, title, photo_url || null];
+    asset_id || null, title, photoList[0] || null, photoJson];
 
   let result;
   try {
     result = runQuery(`
       INSERT INTO tickets (ticket_no, reporter_id, reporter_name, category, category_detail,
-        priority, location, location_detail, asset_id, title, photo_url, status)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'รอดำเนินการ')
+        priority, location, location_detail, asset_id, title, photo_url, photos, status)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'รอดำเนินการ')
     `, insertParams);
   } catch (err) {
     console.error('[tickets.js] INSERT failed:', err.message);
@@ -78,7 +94,7 @@ router.post('/', authMiddleware, (req, res) => {
   runQuery('INSERT INTO sla_log (ticket_id, to_status, changed_by) VALUES (?, ?, ?)',
     [ticketId, 'รอดำเนินการ', req.user.id]);
 
-  const ticket = getOne('SELECT * FROM tickets WHERE id = ?', [ticketId]);
+  const ticket = normPhotos(getOne('SELECT * FROM tickets WHERE id = ?', [ticketId]));
 
   // Emit socket event
   const io = req.app.get('io');
@@ -94,7 +110,7 @@ router.put('/:id', authMiddleware, (req, res) => {
   const ticket = getOne('SELECT * FROM tickets WHERE id = ?', [Number(req.params.id)]);
   if (!ticket) return res.status(404).json({ status: 'error', message: 'ไม่พบงาน' });
 
-  const { status, technician, cost, notes, category, priority, location, asset_id, title, photo_url } = req.body;
+  const { status, technician, cost, notes, category, priority, location, asset_id, title, photo_url, photos } = req.body;
 
   let updates = [];
   let params = [];
@@ -114,10 +130,15 @@ router.put('/:id', authMiddleware, (req, res) => {
   if (location !== undefined) { updates.push('location = ?'); params.push(location); }
   if (asset_id !== undefined) { updates.push('asset_id = ?'); params.push(asset_id); }
   if (title !== undefined) { updates.push('title = ?'); params.push(title); }
-  // photo_url: ส่ง null = ลบรูป, ส่ง url = เปลี่ยนรูป, ไม่ส่ง = เก็บรูปเดิม
-  if (photo_url !== undefined) {
-    updates.push('photo_url = ?');
-    params.push(photo_url ? String(photo_url).trim() : null);
+  // รูปภาพ: ส่ง photos (array) = ตั้งชุดรูปใหม่, ส่ง photo_url = เดิม 1 รูป, ลบได้ด้วย photos:[] หรือ photo_url:null — ไม่ส่ง = เก็บรูปเดิม
+  if (Array.isArray(photos)) {
+    const list = photos.filter(Boolean).slice(0, 5);
+    updates.push('photos = ?'); params.push(JSON.stringify(list));
+    updates.push('photo_url = ?'); params.push(list[0] || null);
+  } else if (photo_url !== undefined) {
+    const list = photo_url ? [String(photo_url).trim()] : [];
+    updates.push('photos = ?'); params.push(JSON.stringify(list));
+    updates.push('photo_url = ?'); params.push(list[0] || null);
   }
 
   updates.push("updated_at = datetime('now','localtime')");
@@ -127,7 +148,7 @@ router.put('/:id', authMiddleware, (req, res) => {
     runQuery(`UPDATE tickets SET ${updates.join(', ')} WHERE id = ?`, params);
   }
 
-  const updated = getOne('SELECT * FROM tickets WHERE id = ?', [Number(req.params.id)]);
+  const updated = normPhotos(getOne('SELECT * FROM tickets WHERE id = ?', [Number(req.params.id)]));
   const io = req.app.get('io');
   if (io) io.emit('ticket:updated', updated);
 

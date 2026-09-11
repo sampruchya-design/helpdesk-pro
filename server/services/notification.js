@@ -6,8 +6,12 @@ const LINE_GROUP_ENV = process.env.LINE_GROUP_CHAT_ID;
 const BASE_URL = process.env.RENDER_EXTERNAL_URL || 'https://helpdeskpro-48vl.onrender.com';
 
 function photoLink(ticket) {
-  if (!ticket || !ticket.photo_url) return '';
-  return `📎 ดูรูป: ${BASE_URL}${ticket.photo_url}`;
+  if (!ticket) return '';
+  let list = [];
+  if (Array.isArray(ticket.photos) && ticket.photos.length) list = ticket.photos;
+  else if (ticket.photo_url) list = [ticket.photo_url];
+  if (!list.length) return '';
+  return '📎 ดูรูป:\n' + list.slice(0, 5).map(u => `• ${BASE_URL}${u}`).join('\n');
 }
 
 async function sendLINE(message) {
