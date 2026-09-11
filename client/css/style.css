@@ -294,7 +294,8 @@ select.inp option { background: #0d1521; color: #e2eaf7; }
   #sidebar.open { transform: translateX(0); }
   #sidebar-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 199; display: none; }
   #sidebar-overlay.open { display: block; }
-  #mobile-header { display: flex; }
+  #mobile-header { display: flex; padding: max(12px, env(safe-area-inset-top)) 14px 14px; height: auto; min-height: 72px; align-items: center; gap: 12px; }
+  .hamburger { width: 46px; height: 46px; font-size: 24px; display: flex; align-items: center; justify-content: center; border-radius: 10px; background: rgba(0,212,255,0.06); border: 1px solid var(--border); flex-shrink: 0; }
   .sidebar-close-btn { display: block; }
 
   /* เมนูด้านข้าง: กดง่ายขึ้น ไม่ชิดขอบจอ */
