@@ -10,6 +10,8 @@ const IDS_FILE = path.join(__dirname, '..', 'data', 'line_ids.json');
 const CHANNEL_SECRET = process.env.LINE_CHANNEL_SECRET || '';
 const LINE_TOKEN = process.env.LINE_CHANNEL_ACCESS_TOKEN || '';
 
+let webhookStats = { hits: 0, valid: 0, lastTime: null };
+
 function readIds() {
   try {
     return JSON.parse(fs.readFileSync(IDS_FILE, 'utf8'));
@@ -38,6 +40,9 @@ async function replyLine(replyToken, text) {
 }
 
 router.post('/webhook', (req, res) => {
+  webhookStats.hits += 1;
+  webhookStats.lastTime = new Date().toISOString();
+
   if (CHANNEL_SECRET) {
     const signature = req.headers['x-line-signature'] || '';
     const expected = crypto
@@ -49,6 +54,7 @@ router.post('/webhook', (req, res) => {
       return res.status(401).end();
     }
   }
+  webhookStats.valid += 1;
 
   const events = req.body && req.body.events ? req.body.events : [];
   const ids = readIds();
@@ -93,7 +99,7 @@ router.post('/webhook', (req, res) => {
 });
 
 router.get('/ids', (req, res) => {
-  res.json({ status: 'success', ...readIds() });
+  res.json({ status: 'success', ...readIds(), webhookStats });
 });
 
 module.exports = router;
