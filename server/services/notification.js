@@ -2,9 +2,19 @@ const axios = require('axios');
 const { getSetting } = require('../database');
 
 const LINE_TOKEN = process.env.LINE_CHANNEL_ACCESS_TOKEN;
-const LINE_GROUP = process.env.LINE_GROUP_CHAT_ID;
+const LINE_GROUP_ENV = process.env.LINE_GROUP_CHAT_ID;
 
 async function sendLINE(message) {
+  // เป้าหมาย: กลุ่มที่ระบบจับได้จาก LINE (แอดบอทเข้ากลุ่ม) > ค่า LINE_GROUP_CHAT_ID ใน env
+  let LINE_GROUP = LINE_GROUP_ENV;
+  try {
+    const detected = getSetting('LINE_NOTIFY_GROUP_ID');
+    if (detected) {
+      LINE_GROUP = detected;
+      if (LINE_GROUP !== LINE_GROUP_ENV) console.log('[LINE] ใช้กลุ่มที่จับได้:', LINE_GROUP);
+    }
+  } catch (e) {}
+
   if (!LINE_TOKEN || !LINE_GROUP) {
     console.log('[LINE] ไม่ได้ตั้งค่า token — ข้ามการส่ง');
     return false;

@@ -13,6 +13,7 @@ router.get('/', authMiddleware, adminOnly, (req, res) => {
     settings: {
       TELEGRAM_BOT_TOKEN: getSetting('TELEGRAM_BOT_TOKEN') || '',
       TELEGRAM_GROUP_CHAT_ID: getSetting('TELEGRAM_GROUP_CHAT_ID') || '',
+      LINE_NOTIFY_GROUP_ID: getSetting('LINE_NOTIFY_GROUP_ID') || '',
       REF_COST_PRICE: refCost
     }
   });

@@ -2,10 +2,13 @@ const express = require('express');
 const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
+const axios = require('axios');
+const { setSetting } = require('../database');
 const router = express.Router();
 
 const IDS_FILE = path.join(__dirname, '..', 'data', 'line_ids.json');
 const CHANNEL_SECRET = process.env.LINE_CHANNEL_SECRET || '';
+const LINE_TOKEN = process.env.LINE_CHANNEL_ACCESS_TOKEN || '';
 
 function readIds() {
   try {
@@ -18,6 +21,20 @@ function readIds() {
 function saveIds(ids) {
   fs.mkdirSync(path.dirname(IDS_FILE), { recursive: true });
   fs.writeFileSync(IDS_FILE, JSON.stringify(ids, null, 2));
+}
+
+async function replyLine(replyToken, text) {
+  if (!LINE_TOKEN || !replyToken) return;
+  try {
+    await axios.post('https://api.line.me/v2/bot/message/reply', {
+      replyToken,
+      messages: [{ type: 'text', text }]
+    }, {
+      headers: { 'Authorization': `Bearer ${LINE_TOKEN}`, 'Content-Type': 'application/json' }
+    });
+  } catch (e) {
+    console.error('[LINE] ส่งข้อความตอบกลับไม่สำเร็จ:', e.message);
+  }
 }
 
 router.post('/webhook', (req, res) => {
@@ -38,14 +55,28 @@ router.post('/webhook', (req, res) => {
 
   for (const ev of events) {
     const src = ev.source || {};
-    if (src.groupId && src.groupId !== ids.groupId) {
+
+    if (src.groupId) {
+      const isNew = !ids.groupId || ids.groupId !== src.groupId;
       ids.groupId = src.groupId;
-      console.log('[LINE] ⛳ จับ groupId ได้:', src.groupId);
+      console.log('[LINE] ⛳ จับกลุ่มได้:', src.groupId);
+      // บันทึกเป็นกลุ่มเป้าหมายแจ้งเตือน (ให้แจ้งเตือนตามไปที่กลุ่มนี้) — เฉพาะเมื่อกลุ่มเปลี่ยน
+      if (isNew) {
+        try { setSetting('LINE_NOTIFY_GROUP_ID', src.groupId); } catch (e) {}
+        if (ev.type === 'join' || ev.type === 'memberJoined') {
+          console.log('[LINE] 🎉 บอทถูกเพิ่มเข้ากลุ่ม — ตั้งเป็นกลุ่มแจ้งเตือนแล้ว');
+          replyLine(ev.replyToken, '✅ ตั้งกลุ่มนี้เป็นกลุ่มรับแจ้งเตือน HelpdeskPro แล้ว!\nจากนี้ การแจ้งซ่อม/อัปเดต/สรุปรายงาน จะส่งมาที่กลุ่มนี้');
+        }
+      }
+    } else if (src.roomId) {
+      // กลุ่มของบุคคลที่ใช้ LINE (roomId) — เก็บไว้เฉยๆ
+      if (!ids.roomId || ids.roomId !== src.roomId) {
+        ids.roomId = src.roomId;
+        console.log('[LINE] ⛳ จับ roomId ได้:', src.roomId);
+        try { setSetting('LINE_NOTIFY_GROUP_ID', src.roomId); } catch (e) {}
+      }
     }
-    if (src.roomId && src.roomId !== ids.roomId) {
-      ids.roomId = src.roomId;
-      console.log('[LINE] ⛳ จับ roomId ได้:', src.roomId);
-    }
+
     if (src.userId && src.userId !== ids.userId) {
       ids.userId = src.userId;
       console.log('[LINE] ⛳ จับ userId ได้:', src.userId);
@@ -55,8 +86,7 @@ router.post('/webhook', (req, res) => {
   if (events.length) {
     saveIds(ids);
     console.log('[LINE] webhook รับ event:', events.map(e => e.type).join(', '));
-    console.log('[LINE] 👉 ค่า LINE_GROUP_CHAT_ID =', ids.groupId || '(ยังไม่มี — เพิ่ม bot เข้ากลุ่มก่อน)');
-    console.log('[LINE] บันทึกเข้าร้านไฟล์ data/line_ids.json แล้ว');
+    console.log('[LINE] 👉 กลุ่มเป้าหมายแจ้งเตือน =', ids.groupId || '(ยังไม่มี — เพิ่ม bot เข้ากลุ่มก่อน)');
   }
 
   res.json({});

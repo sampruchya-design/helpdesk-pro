@@ -196,6 +196,14 @@ async function loadTelegramSettings() {
       document.getElementById('tgToken').value = res.settings.TELEGRAM_BOT_TOKEN || '';
       document.getElementById('tgChatId').value = res.settings.TELEGRAM_GROUP_CHAT_ID || '';
       tgStatusEl().textContent = res.settings.TELEGRAM_BOT_TOKEN ? '✅ ตั้งค่าไว้แล้ว — กดส่งข้อความทดสอบได้' : 'ยังไม่ตั้งค่า — กรอก Bot Token และ Chat ID';
+      const lt = res.settings.LINE_NOTIFY_GROUP_ID;
+      const lineEl = document.getElementById('lineTargetStatus');
+      if (lineEl) {
+        lineEl.innerHTML = '<span style="font-weight:700;">📱 LINE แจ้งเตือน:</span><br>'
+          + (lt
+            ? `<span style="color:var(--green);">✅ ไปที่กลุ่มที่จับได้ · ${lt.length > 6 ? lt.slice(-6) : lt}…</span>`
+            : 'ยังไม่จับกลุ่ม — เพิ่มบอทเข้ากลุ่ม LINE แล้วส่งข้อความในกลุ่ม 1 ครั้ง (webhook ต้องเปิดด้วย)');
+      }
     }
   } catch (err) {
     console.error('โหลด Telegram settings ไม่สำเร็จ:', err);

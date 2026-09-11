@@ -6,7 +6,7 @@ const { Server } = require('socket.io');
 const cors = require('cors');
 const path = require('path');
 const fs = require('fs');
-const { getDB, getAll, getOne, runQuery, saveDB } = require('./database');
+const { getDB, getAll, getOne, runQuery, saveDB, getSetting } = require('./database');
 const { authMiddleware, adminOnly } = require('./middleware/auth');
 
 const app = express();
@@ -36,6 +36,7 @@ app.get('/api/debug/env', (req, res) => {
     lineChannelId: Boolean(process.env.LINE_CHANNEL_ID),
     lineChannelSecret: Boolean(process.env.LINE_CHANNEL_SECRET),
     lineGroup: Boolean(process.env.LINE_GROUP_CHAT_ID),
+    lineDetectedGroup: getSetting('LINE_NOTIFY_GROUP_ID') || null,
     jwtSet: Boolean(process.env.JWT_SECRET),
     port: process.env.PORT || '(default 3000)'
   });
