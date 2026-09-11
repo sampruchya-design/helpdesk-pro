@@ -290,33 +290,20 @@ select.inp option { background: #0d1521; color: #e2eaf7; }
 ::-webkit-scrollbar-thumb:hover { background: rgba(0,212,255,0.3); }
 
 @media (max-width: 1024px) {
-  #sidebar { position: fixed; top: 0; left: 0; bottom: 0; z-index: 200; transform: translateX(-100%); transition: transform 0.3s ease; width: 260px !important; }
+  #sidebar { position: fixed; top: 0; left: 0; bottom: 0; z-index: 200; transform: translateX(-100%); transition: transform 0.3s ease; width: 280px !important; }
   #sidebar.open { transform: translateX(0); }
   #sidebar-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 199; display: none; }
   #sidebar-overlay.open { display: block; }
   #mobile-header { display: flex; }
   .sidebar-close-btn { display: block; }
-}
 
-/* ===== MOBILE: เฟ้นพื้นที่กด + กันขอบจอ ===== */
-@media (max-width: 768px) {
-  #main-scroll { padding: 22px 18px 96px; }
-  .page-header { margin-bottom: 16px; }
-  .page-title { font-size: 19px; }
-  .stat-grid { grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 14px; margin-bottom: 20px; }
-  .stat-card { padding: 20px 14px; min-height: 96px; display: flex; flex-direction: column; justify-content: center; }
-  .stat-value { font-size: 34px; }
-  .stat-label { margin-bottom: 10px; font-size: 12px; }
-  .chart-grid { grid-template-columns: 1fr; margin-bottom: 16px; }
-  .glass[style*="padding:20px"] { padding: 18px 16px !important; }
-  .btn-refresh { padding: 10px 18px; font-size: 13px; }
-}
-
-@media (max-width: 420px) {
-  #main-scroll { padding: 18px 16px 100px; }
-  /* หน้าจอเล็กมาก → คอลัมน์เดียว กดสะดวกสุด */
-  .stat-grid { grid-template-columns: 1fr; gap: 12px; }
-  .stat-card { min-height: 82px; }
-  .stat-value { font-size: 32px; }
-  .chart-wrap { height: 200px; }
+  /* เมนูด้านข้าง: กดง่ายขึ้น ไม่ชิดขอบจอ */
+  .sidebar-nav { padding: 12px 14px 28px; }
+  .nav-btn { padding: 13px 20px; font-size: 15px; gap: 14px; border-radius: 12px; }
+  .nav-icon { width: 38px; height: 38px; font-size: 17px; }
+  .sidebar-brand { padding: 20px 18px 16px; }
+  .sidebar-footer { padding: 14px; }
+  .user-box { padding: 12px; }
+  .user-name { font-size: 14px; }
+  .btn-logout { padding: 12px; font-size: 13px; }
 }
