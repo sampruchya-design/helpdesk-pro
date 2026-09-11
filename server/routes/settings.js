@@ -38,4 +38,26 @@ router.post('/telegram-test', authMiddleware, adminOnly, async (req, res) => {
   }
 });
 
+// POST /api/settings/report-daily — ส่งสรุปรายวัน (admin only)
+router.post('/report-daily', authMiddleware, adminOnly, async (req, res) => {
+  const { generateDailyReport } = require('../services/scheduler');
+  try {
+    await generateDailyReport();
+    res.json({ status: 'success', message: '✅ ส่งสรุปรายวันแล้ว — เช็ค LINE/Telegram' });
+  } catch (e) {
+    res.status(400).json({ status: 'error', message: e.message });
+  }
+});
+
+// POST /api/settings/report-weekly — ส่งสรุปรายสัปดาห์ (admin only)
+router.post('/report-weekly', authMiddleware, adminOnly, async (req, res) => {
+  const { generateWeeklyReport } = require('../services/scheduler');
+  try {
+    await generateWeeklyReport();
+    res.json({ status: 'success', message: '✅ ส่งสรุปรายสัปดาห์แล้ว — เช็ค LINE/Telegram' });
+  } catch (e) {
+    res.status(400).json({ status: 'error', message: e.message });
+  }
+});
+
 module.exports = router;

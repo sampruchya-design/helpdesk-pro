@@ -227,6 +227,16 @@ async function testTelegram() {
   }
 }
 
+async function sendReport(which) {
+  const label = which === 'daily' ? 'รายวัน' : 'รายสัปดาห์';
+  try {
+    const res = await API.post(`/api/settings/report-${which}`, {});
+    showModal('ส่งสรุป' + label, res.message);
+  } catch (err) {
+    showModal('เกิดข้อผิดพลาด', err.message);
+  }
+}
+
 // ===== AI Panel =====
 function escapeHtml(s) {
   return String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));

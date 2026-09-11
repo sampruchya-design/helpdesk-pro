@@ -318,6 +318,14 @@
               <p class="page-sub">ดาวน์โหลดไฟล์ฐานข้อมูลทั้งก้อน (สำคัญมากก่อน restart/เหลือบหน้านัก)</p>
               <button class="export-btn" onclick="backupDatabase()" style="color:var(--teal);"><span class="export-icon">⬇️</span> ดาวน์โหลด .db</button>
             </div>
+            <div class="glass" style="padding:20px;border:1px solid rgba(168,85,247,0.25);">
+              <h3 class="section-heading" style="color:var(--purple);">📊 สรุปประจำวัน / สัปดาห์</h3>
+              <p class="page-sub">ส่งสรุปไป LINE/Telegram ได้ทุกเมื่อ (ระบบส่งอัตโนมัติวันละ 09:00 และศุกร์ 16:00)</p>
+              <div class="export-grid">
+                <button class="export-btn" onclick="sendReport('daily')" style="color:var(--accent);"><span class="export-icon">📊</span> ส่งสรุปรายวัน</button>
+                <button class="export-btn" onclick="sendReport('weekly')" style="color:var(--purple);"><span class="export-icon">📋</span> ส่งสรุปรายสัปดาห์</button>
+              </div>
+            </div>
             <div class="glass" style="padding:20px;border:1px solid rgba(0,212,255,0.25);">
               <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
                 <h3 class="section-heading" style="margin-bottom:0;color:var(--teal);">🤖 AI วิเคราะห์ข้อมูล</h3>

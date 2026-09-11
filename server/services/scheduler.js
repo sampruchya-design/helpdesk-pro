@@ -51,7 +51,7 @@ function generateDailyReport() {
   const doneToday = getOne("SELECT COUNT(*) as c FROM tickets WHERE status = 'เสร็จสิ้น' AND date(updated_at) = ?", [today]);
   const monthCost = getOne("SELECT COALESCE(SUM(cost), 0) as c FROM tickets WHERE created_at >= ?", [monthStart]);
 
-  sendDailyReport({
+  return sendDailyReport({
     newToday: newToday.c,
     pending: pending.c,
     doing: doing.c,
@@ -90,7 +90,7 @@ function generateWeeklyReport() {
     AND julianday('now','localtime') - julianday(created_at) > 3
   `);
 
-  sendWeeklyReport({
+  return sendWeeklyReport({
     weekNew: weekNew.c,
     weekDone: weekDone.c,
     pending: pending.c,
@@ -104,4 +104,4 @@ function generateWeeklyReport() {
   });
 }
 
-module.exports = { startScheduler };
+module.exports = { startScheduler, generateDailyReport, generateWeeklyReport };
