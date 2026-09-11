@@ -146,6 +146,11 @@ function filterAndGoTo(status) {
   renderList();
 }
 
+function goBackHome() {
+  document.getElementById('searchInput').value = '';
+  switchTab('dashboard');
+}
+
 async function deleteTicket(id) {
   const r = ticketData.find(x => String(x.id) === String(id));
   if (!r) return;
