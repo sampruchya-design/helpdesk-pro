@@ -71,6 +71,7 @@
       <button id="btn-form" class="nav-btn" onclick="switchTab('form')"><span class="nav-icon">📝</span> แจ้งซ่อมใหม่</button>
       <button id="btn-list" class="nav-btn" onclick="switchTab('list')"><span class="nav-icon">📋</span> รายการแจ้งซ่อม</button>
       <button id="btn-asset" class="nav-btn" onclick="switchTab('asset')"><span class="nav-icon">🔍</span> ประวัติทรัพย์สิน</button>
+      <button id="btn-km" class="nav-btn" onclick="switchTab('km')"><span class="nav-icon">📚</span> ห้องสมุด KM</button>
       <div class="section-title admin-only">ผู้ดูแล</div>
       <button id="btn-admin" class="nav-btn admin-only" onclick="switchTab('admin')"><span class="nav-icon">⚙️</span> ผู้ดูแลระบบ</button>
     </nav>
@@ -264,6 +265,75 @@
         </div>
       </div>
 
+      <!-- ===== ห้องสมุด KM ===== -->
+      <div id="tab-km" class="tab-content">
+        <div class="page-header">
+          <div>
+            <h2 class="page-title">📚 ห้องสมุด KM</h2>
+            <p class="page-sub">คู่มือการตรวจซ่อม · แนวทางปฏิบัติ · องค์ความรู้ของทีม</p>
+          </div>
+          <div class="admin-only">
+            <button onclick="openKMForm()" class="btn-add btn-cyan">➕ เพิ่มเอกสาร KM</button>
+          </div>
+        </div>
+        <div id="km-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:16px;margin-top:18px;"></div>
+      </div>
+
+      <!-- ===== KM Upload Modal ===== -->
+      <div id="kmModal" class="modal-backdrop">
+        <div class="glass modal-card" style="max-width:680px;max-height:90vh;overflow-y:auto;">
+          <div class="modal-header">
+            <h3>📚 เพิ่มเอกสาร KM (Knowledge Management)</h3>
+            <button onclick="closeKMModal()" class="modal-close">✕</button>
+          </div>
+          <div class="field">
+            <label class="label">หัวข้ออุปกรณ์ (เช่น เครื่องตรวจจับควันและความร้อน)</label>
+            <input type="text" id="km_title" class="inp" placeholder="KM ตรวจซ่อม ...">
+          </div>
+          <div class="field-row">
+            <div><label class="label">หมวดหมู่</label>
+              <input type="text" id="km_category" class="inp" list="category-datalist" placeholder="เลือกหรือพิมพ์ใหม่">
+            </div>
+            <div><label class="label">ผูกกับเลขที่งาน (ไม่บังคับ)</label>
+              <input type="text" id="km_ticket_no" class="inp" placeholder="RQ-20260911-001">
+            </div>
+          </div>
+          <div class="field-row">
+            <div><label class="label">สถานที่</label><input type="text" id="km_location" class="inp" placeholder="สถานี..."></div>
+            <div><label class="label">เจ้าหน้าที่ผู้ปฏิบัติงาน</label><input type="text" id="km_operator" class="inp" list="technician-datalist" placeholder="ชื่อ"></div>
+          </div>
+          <div class="field">
+            <label class="label">ผู้บังคับบัญชา/ที่ปรึกษา</label>
+            <input type="text" id="km_supervisor" class="inp" placeholder="ชื่อ + ตำแหน่ง">
+          </div>
+          <div class="field" style="border-top:1px solid rgba(255,255,255,0.08);padding-top:14px;">
+            <label class="label">1. เหตุการณ์ <span style="color:var(--text-muted);font-size:11px;font-weight:400;">— เบื้องหลัง/กรณีที่เกิด</span></label>
+            <textarea id="km_content" class="inp" rows="3" style="resize:vertical;" placeholder="เนื่องจาก..."></textarea>
+          </div>
+          <div class="field">
+            <label class="label">2. ข้อมูลเทคนิคของอุปกรณ์ <span style="color:var(--text-muted);font-size:11px;font-weight:400;">— คุณสมบัติ/สเปก</span></label>
+            <textarea id="km_tech" class="inp" rows="3" style="resize:vertical;" placeholder="แรงดันไฟฟ้า 9-28VDC..."></textarea>
+          </div>
+          <div class="field">
+            <label class="label">3. ขั้นตอนการตรวจซ่อม <span style="color:var(--text-muted);font-size:11px;font-weight:400;">— ใส่ลำดับขั้นตอน (1.1 ... 1.2 ...)</span></label>
+            <textarea id="km_steps" class="inp" rows="5" style="resize:vertical;" placeholder="1.1 ถอดอุปกรณ์...&#10;1.2 แกะฝาครอบ...&#10;1.3 ตรวจพบ..."></textarea>
+          </div>
+          <div class="field">
+            <label class="label">📷 รูปปก <span style="color:var(--text-muted);font-size:11px;font-weight:400;">— ภาพหน้าแรก (PDF/JPG/PNG)</span></label>
+            <input type="file" id="km_cover_file" accept="image/*,.pdf" class="inp" style="padding:8px;">
+          </div>
+          <div class="field">
+            <label class="label">🖼️ รูปแสดงอุปกรณ์/การซ่อม <span style="color:var(--text-muted);font-size:11px;font-weight:400;">— แนบหลายรูปได้ (สูงสุด 10)</span></label>
+            <input type="file" id="km_images" accept="image/*" multiple class="inp" style="padding:8px;">
+            <div id="km_image_preview" style="display:none;margin-top:8px;gap:8px;flex-wrap:wrap;"></div>
+          </div>
+          <div class="modal-actions">
+            <button onclick="closeKMModal()" class="btn-cancel">ยกเลิก</button>
+            <button onclick="saveKM()" id="kmSaveBtn" class="btn-primary-sm">💾 บันทึก KM</button>
+          </div>
+        </div>
+      </div>
+
       <!-- ===== ADMIN ===== -->
       <div id="tab-admin" class="tab-content">
         <div class="page-header">
@@ -336,6 +406,10 @@
               </div>
               <div id="aiInsights" class="page-sub" style="white-space:pre-line;line-height:1.8;"></div>
               <div id="aiCostComp" style="margin-top:10px;font-size:12px;overflow-x:auto;"></div>
+              <div style="display:flex;gap:8px;margin-top:14px;">
+                <button onclick="saveAiAsKM()" class="btn-add btn-cyan" style="flex:1;">💾 บันทึกเป็น KM</button>
+                <button onclick="exportAiAsPDF()" class="btn-add btn-purple" style="flex:1;">📤 Export PDF</button>
+              </div>
               <hr style="border-color:rgba(255,255,255,0.08);margin:14px 0;">
               <p class="page-sub" style="margin-bottom:8px;">💰 ราคาอ้างอิงจ้างภายนอก (บาท/ครั้ง) — ให้ AI เปรียบเทียบ "ซ่อมเอง vs จ้างร้าน"</p>
               <div id="refPriceFields"></div>
@@ -486,6 +560,7 @@
 <script src="/js/ticket-list.js"></script>
 <script src="/js/asset.js"></script>
 <script src="/js/admin.js"></script>
+<script src="/js/km.js"></script>
 <script src="/js/app.js"></script>
 </body>
 </html>

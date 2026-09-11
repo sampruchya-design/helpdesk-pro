@@ -15,13 +15,13 @@ const storage = multer.diskStorage({
 
 const upload = multer({
   storage,
-  limits: { fileSize: 5 * 1024 * 1024, files: 5 }, // 5MB/รูป, สูงสุด 5 รูป
+  limits: { fileSize: 25 * 1024 * 1024, files: 5 }, // 25MB/ไฟล์, สูงสุด 5 ไฟล์ (รองรับ KM/PDF)
   fileFilter: (req, file, cb) => {
-    const allowed = /jpeg|jpg|png|gif|webp/;
+    const allowed = /jpeg|jpg|png|gif|webp|pdf/;
     const extOk = allowed.test(path.extname(file.originalname).toLowerCase());
     const mimeOk = allowed.test(file.mimetype);
     if (extOk && mimeOk) cb(null, true);
-    else cb(new Error('อนุญาตเฉพาะไฟล์รูปภาพ (jpg, png, gif, webp)'));
+    else cb(new Error('อนุญาตเฉพาะไฟล์รูปภาพ (jpg, png, gif, webp) หรือ PDF'));
   }
 });
 

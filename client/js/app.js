@@ -46,6 +46,7 @@ async function bootApp() {
   loadDashboard();
   loadTickets();
   loadAssets();
+  loadKMs();
 }
 
 // ===== Sidebar =====
@@ -69,6 +70,7 @@ function switchTab(id) {
   if (id === 'dashboard') loadDashboard();
   if (id === 'list') loadTickets();
   if (id === 'asset') loadAssets();
+  if (id === 'km') loadKMs();
   if (id === 'admin') { loadUsers(); renderAdminLists(); loadTelegramSettings(); loadAiPanel(); }
 }
 

@@ -145,6 +145,7 @@ function initSchema() {
       value TEXT
     )
   `);
+  db.run('CREATE TABLE IF NOT EXISTS kms (id INTEGER PRIMARY KEY AUTOINCREMENT, title TEXT NOT NULL, category TEXT DEFAULT \'อื่นๆ\', location TEXT DEFAULT \'\', operator TEXT DEFAULT \'\', supervisor TEXT DEFAULT \'\', content TEXT DEFAULT \'\', tech_info TEXT DEFAULT \'\', steps TEXT DEFAULT \'\', images TEXT DEFAULT \'[]\', file_url TEXT DEFAULT \'\', file_type TEXT DEFAULT \'\', source TEXT DEFAULT \'upload\', ticket_no TEXT DEFAULT \'\', created_by TEXT DEFAULT \'\', created_at DATETIME DEFAULT (datetime(\'now\',\'localtime\')), updated_at DATETIME DEFAULT (datetime(\'now\',\'localtime\')))');
 
   // Indexes
   db.run('CREATE INDEX IF NOT EXISTS idx_tickets_status ON tickets(status)');
