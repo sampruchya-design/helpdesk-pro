@@ -80,7 +80,23 @@ function getFinalLocation() {
 
 document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('repairForm').addEventListener('submit', handleSubmitForm);
+  const pf = document.getElementById('photoFile');
+  if (pf) pf.addEventListener('change', function () {
+    const box = document.getElementById('photoPreview');
+    const img = document.getElementById('photoPreviewImg');
+    if (this.files && this.files[0]) {
+      const rd = new FileReader();
+      rd.onload = e => { img.src = e.target.result; box.style.display = 'flex'; };
+      rd.readAsDataURL(this.files[0]);
+    } else { box.style.display = 'none'; img.src = ''; }
+  });
 });
+
+function clearPhotoPreview() {
+  document.getElementById('photoFile').value = '';
+  document.getElementById('photoPreview').style.display = 'none';
+  document.getElementById('photoPreviewImg').src = '';
+}
 
 async function handleSubmitForm(e) {
   e.preventDefault();
@@ -116,6 +132,7 @@ async function handleSubmitForm(e) {
 
     // Reset form
     this.reset();
+    clearPhotoPreview();
     document.getElementById('category-detail-wrap').style.display = 'none';
     document.getElementById('location-detail-wrap').style.display = 'none';
 

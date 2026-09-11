@@ -94,7 +94,7 @@ router.put('/:id', authMiddleware, (req, res) => {
   const ticket = getOne('SELECT * FROM tickets WHERE id = ?', [Number(req.params.id)]);
   if (!ticket) return res.status(404).json({ status: 'error', message: 'ไม่พบงาน' });
 
-  const { status, technician, cost, notes, category, priority, location, asset_id, title } = req.body;
+  const { status, technician, cost, notes, category, priority, location, asset_id, title, photo_url } = req.body;
 
   let updates = [];
   let params = [];
@@ -114,6 +114,11 @@ router.put('/:id', authMiddleware, (req, res) => {
   if (location !== undefined) { updates.push('location = ?'); params.push(location); }
   if (asset_id !== undefined) { updates.push('asset_id = ?'); params.push(asset_id); }
   if (title !== undefined) { updates.push('title = ?'); params.push(title); }
+  // photo_url: ส่ง null = ลบรูป, ส่ง url = เปลี่ยนรูป, ไม่ส่ง = เก็บรูปเดิม
+  if (photo_url !== undefined) {
+    updates.push('photo_url = ?');
+    params.push(photo_url ? String(photo_url).trim() : null);
+  }
 
   updates.push("updated_at = datetime('now','localtime')");
 

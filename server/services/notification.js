@@ -3,6 +3,12 @@ const { getSetting } = require('../database');
 
 const LINE_TOKEN = process.env.LINE_CHANNEL_ACCESS_TOKEN;
 const LINE_GROUP_ENV = process.env.LINE_GROUP_CHAT_ID;
+const BASE_URL = process.env.RENDER_EXTERNAL_URL || 'https://helpdeskpro-48vl.onrender.com';
+
+function photoLink(ticket) {
+  if (!ticket || !ticket.photo_url) return '';
+  return `📎 ดูรูป: ${BASE_URL}${ticket.photo_url}`;
+}
 
 async function sendLINE(message) {
   // เป้าหมาย: กลุ่มที่ระบบจับได้จาก LINE (แอดบอทเข้ากลุ่ม) > ค่า LINE_GROUP_CHAT_ID ใน env
@@ -97,6 +103,7 @@ async function notifyNewTicket(ticket) {
     `⚠️ ความสำคัญ: ${priorityEmoji[ticket.priority] || ticket.priority}`,
     `📝 ปัญหา: ${ticket.title}`,
     ticket.asset_id && ticket.asset_id !== '-' ? `🏷️ ทรัพย์สิน: ${ticket.asset_id}` : '',
+    photoLink(ticket),
     `━━━━━━━━━━━━━━━━━━`,
     `⏰ ${new Date().toLocaleString('th-TH', { timeZone: 'Asia/Bangkok' })}`
   ].filter(Boolean).join('\n');
@@ -117,6 +124,7 @@ async function notifyStatusUpdate(ticket, oldStatus) {
     ticket.technician && ticket.technician !== '-' ? `👨‍🔧 ช่าง: ${ticket.technician}` : '',
     ticket.cost > 0 ? `💰 ค่าใช้จ่าย: ฿${Number(ticket.cost).toLocaleString()}` : '',
     `📝 ${ticket.title}`,
+    photoLink(ticket),
     `━━━━━━━━━━━━━━━━━━`,
     `⏰ ${new Date().toLocaleString('th-TH', { timeZone: 'Asia/Bangkok' })}`
   ].filter(Boolean).join('\n');

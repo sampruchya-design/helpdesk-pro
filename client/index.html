@@ -206,6 +206,10 @@
             <div class="field">
               <label class="label">แนบรูปภาพ (ไม่บังคับ)</label>
               <input type="file" id="photoFile" accept="image/*" class="inp" style="padding:8px;">
+              <div id="photoPreview" style="display:none;margin-top:10px;gap:10px;align-items:flex-start;">
+                <img id="photoPreviewImg" alt="ตัวอย่างรูป" style="max-width:100%;max-height:170px;border-radius:10px;border:1px solid rgba(255,255,255,0.15);">
+                <button type="button" onclick="clearPhotoPreview()" class="btn-cancel-sm">✕ เอารูปออก</button>
+              </div>
             </div>
             <button type="submit" id="submitBtn" class="btn-primary">✨ บันทึกงานแจ้งซ่อม</button>
           </form>
@@ -398,6 +402,18 @@
     <div class="field">
       <label class="label">บันทึกเพิ่มเติม</label>
       <textarea id="u_notes" class="inp" rows="2" style="resize:none;" placeholder="หมายเหตุ..."></textarea>
+    </div>
+    <div class="field">
+      <label class="label">รูปภาพ</label>
+      <div id="u_photoDisplay" style="margin-bottom:8px;display:flex;gap:10px;align-items:flex-start;flex-wrap:wrap;"></div>
+      <input type="file" id="u_photoFile" accept="image/*" class="inp" style="padding:8px;">
+      <label style="display:flex;align-items:center;gap:6px;margin-top:8px;font-size:12px;color:var(--text-muted);cursor:pointer;">
+        <input type="checkbox" id="u_photoRemove" style="cursor:pointer;"> เอารูปออก (ลบรูปที่แนบไว้เดิม)
+      </label>
+      <div id="u_photoPreview" style="display:none;margin-top:10px;gap:10px;align-items:flex-start;">
+        <img id="u_photoPreviewImg" alt="รูปใหม่" style="max-width:100%;max-height:140px;border-radius:10px;border:1px solid rgba(255,255,255,0.15);">
+        <button type="button" onclick="clearUPhotoPreview()" class="btn-cancel-sm">✕ เอารูปที่เลือกออก</button>
+      </div>
     </div>
     <div class="modal-actions">
       <button onclick="closeUpdateModal()" class="btn-cancel">ยกเลิก</button>

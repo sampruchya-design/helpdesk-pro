@@ -237,6 +237,8 @@ select.inp option { background: #0d1521; color: #e2eaf7; }
 .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
 .btn-primary-sm { padding: 10px 20px; border-radius: 9px; background: linear-gradient(135deg, var(--accent2), var(--accent)); border: none; color: #000; font-size: 13px; font-weight: 700; cursor: pointer; font-family: 'Kanit', sans-serif; }
 .btn-cancel { padding: 10px 20px; border-radius: 9px; background: rgba(255,255,255,0.05); border: 1px solid var(--border); color: var(--text-muted); font-size: 13px; font-weight: 600; cursor: pointer; font-family: 'Kanit', sans-serif; }
+.btn-cancel-sm { display: inline-flex; align-items: center; gap: 4px; padding: 6px 12px; border-radius: 7px; background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.14); color: var(--text-muted); font-size: 12px; font-weight: 600; cursor: pointer; font-family: 'Kanit', sans-serif; }
+.btn-cancel-sm:hover { background: rgba(239,68,68,0.12); border-color: rgba(239,68,68,0.35); color: #f87171; }
 .btn-success { width: 100%; padding: 12px; border-radius: 10px; background: linear-gradient(135deg, rgba(34,212,116,0.8), rgba(34,212,116,0.5)); border: 1px solid rgba(34,212,116,0.4); color: #000; font-size: 14px; font-weight: 800; cursor: pointer; font-family: 'Kanit', sans-serif; }
 
 /* ===== LIST HEADER ===== */

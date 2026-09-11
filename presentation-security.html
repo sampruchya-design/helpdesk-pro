@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>HelpdeskPro · Security Briefing</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Kanit:wght@200;300;400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#0a0d13;
+    --bg2:#0e1320;
+    --card:rgba(255,255,255,0.045);
+    --card-brd:rgba(255,255,255,0.10);
+    --gold:#e8b64c;
+    --gold2:#f5a623;
+    --txt:#eef1f6;
+    --mut:#9aa5b5;
+    --red:#ff6b6b;
+    --green:#4fd69a;
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  html,body{height:100%;overflow:hidden}
+  body{
+    font-family:'Kanit',system-ui,'Segoe UI',Tahoma,sans-serif;
+    color:var(--txt);
+    background:
+      radial-gradient(1100px 700px at 85% -10%, rgba(232,182,76,0.10), transparent 60%),
+      radial-gradient(900px 700px at -10% 110%, rgba(232,182,76,0.06), transparent 55%),
+      linear-gradient(160deg,var(--bg) 0%,var(--bg2) 100%);
+    -webkit-font-smoothing:antialiased;
+  }
+  .deck{width:100%;height:100%;position:relative}
+  .slide{
+    position:absolute;inset:0;display:flex;flex-direction:column;
+    justify-content:center;align-items:center;padding:5vh 7vw;text-align:center;
+    opacity:0;transform:translateY(24px);pointer-events:none;
+    transition:opacity .55s ease,transform .55s ease;
+  }
+  .slide.active{opacity:1;transform:none;pointer-events:auto}
+  .t1{font-size:clamp(30px,5.2vw,64px);font-weight:600;letter-spacing:2px;line-height:1.25}
+  .t-sub{font-size:clamp(16px,2vw,24px);color:var(--mut);font-weight:300;margin-top:14px;letter-spacing:4px;text-transform:uppercase}
+  .u-line{width:64px;height:3px;background:linear-gradient(90deg,var(--gold),transparent);margin:26px auto 0}
+  .eyebrow{font-size:clamp(12px,1.2vw,15px);color:var(--gold);letter-spacing:6px;font-weight:500;margin-bottom:18px;text-transform:uppercase}
+  .grid{display:grid;gap:18px;width:100%;max-width:1080px;margin-top:44px}
+  .g3{grid-template-columns:repeat(3,1fr)}
+  .g2{grid-template-columns:repeat(2,1fr)}
+  .card{background:var(--card);border:1px solid var(--card-brd);border-radius:20px;padding:30px 26px;text-align:left;backdrop-filter:blur(8px);position:relative;overflow:hidden}
+  .card::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,var(--gold2),transparent 70%)}
+  .card .big{font-size:clamp(30px,4vw,52px);font-weight:700;color:var(--gold);line-height:1}
+  .card h4{font-size:clamp(16px,1.7vw,21px);font-weight:600;margin:12px 0 8px}
+  .card p{font-size:clamp(13px,1.35vw,16.5px);color:var(--mut);font-weight:300;line-height:1.7}
+  .k{font-family:'IBM Plex Mono',monospace}
+  .hdr-mini{position:fixed;top:26px;left:32px;font-size:13px;letter-spacing:3px;color:var(--mut);font-weight:400}
+  .hdr-mini b{color:var(--gold);font-weight:600}
+  .count{position:fixed;bottom:24px;right:30px;font-family:'IBM Plex Mono',monospace;font-size:14px;color:var(--mut)}
+  .count b{color:var(--gold);font-weight:600}
+  .dots{position:fixed;bottom:26px;left:50%;transform:translateX(-50%);display:flex;gap:10px}
+  .dot{width:9px;height:9px;border-radius:50%;background:rgba(255,255,255,0.18);cursor:pointer;transition:.3s}
+  .dot.on{background:var(--gold);transform:scale(1.25)}
+  .navbtn{position:fixed;top:50%;transform:translateY(-50%);width:52px;height:52px;border-radius:50%;border:1px solid var(--card-brd);background:rgba(255,255,255,0.03);color:var(--txt);font-size:20px;cursor:pointer;z-index:30;transition:.25s;backdrop-filter:blur(6px)}
+  .navbtn:hover{background:rgba(232,182,76,0.15);border-color:var(--gold)}
+  .navbtn.l{left:22px}.navbtn.r{right:22px}
+  .mono{font-family:'IBM Plex Mono',monospace;font-size:clamp(12px,1.2vw,15px)}
+  table{width:100%;max-width:1080px;border-collapse:collapse;margin-top:36px;font-size:clamp(13px,1.4vw,17px)}
+  th,.tdh{text-align:left;color:var(--gold);font-weight:500;letter-spacing:1px;padding:13px 14px;border-bottom:1px solid rgba(232,182,76,0.25)}
+  td{padding:13px 14px;border-bottom:1px solid rgba(255,255,255,0.07);color:var(--txt);font-weight:300;text-align:left}
+  .pill{display:inline-block;padding:4px 14px;border-radius:999px;font-size:clamp(11px,1vw,13px);font-weight:500;letter-spacing:.5px}
+  .p-a{background:rgba(79,214,154,0.12);color:var(--green);border:1px solid rgba(79,214,154,0.35)}
+  .p-m{background:rgba(245,166,35,0.12);color:var(--gold2);border:1px solid rgba(245,166,35,0.35)}
+  .p-h{background:rgba(255,107,107,0.12);color:var(--red);border:1px solid rgba(255,107,107,0.35)}
+  .chips{display:flex;gap:10px;flex-wrap:wrap;justify-content:center;margin-top:28px}
+  .chip{border:1px solid var(--card-brd);border-radius:999px;padding:8px 18px;font-size:clamp(12px,1.3vw,15px);color:var(--mut);background:var(--card)}
+  .lead{font-size:clamp(17px,2.2vw,27px);font-weight:300;color:var(--txt);max-width:900px;line-height:1.8;margin-top:20px}
+  .lead b{color:var(--gold);font-weight:600}
+  .arrow{font-size:26px;color:var(--gold)}
+  .notes{position:fixed;left:0;right:0;bottom:0;background:rgba(10,13,19,0.94);border-top:1px solid var(--card-brd);padding:16px 7vw;font-size:14px;color:var(--mut);transform:translateY(100%);transition:.3s;z-index:40;max-height:42vh;overflow:auto;text-align:left;white-space:pre-line}
+  .notes.show{transform:none}
+  @media (max-width:820px){ .g3,.g2{grid-template-columns:1fr} .grid{margin-top:24px;gap:12px} .card{padding:20px} .navbtn{display:none} }
+  .foot{position:fixed;bottom:26px;left:30px;font-size:12px;color:var(--mut);letter-spacing:2px}
+</style>
+</head>
+<body>
+<div class="hdr-mini">HELPDESKPRO <b>· SECURITY BRIEFING</b></div>
+
+<div class="deck" id="deck">
+
+  <!-- 1: TITLE -->
+  <section class="slide active">
+    <div class="eyebrow">ผู้บริหาร · รายงานความมั่นคงปลอดภัย</div>
+    <h1 class="t1">ระบบติดตามงานซ่อม<br>HELPDESKPRO</h1>
+    <div class="u-line"></div>
+    <p class="lead">สรุปมาตรการรักษาความปลอดภัย การประเมินความเสี่ยง<br>และข้อเสนอเพื่อยกระดับสู่มาตรฐานองค์กร</p>
+    <div class="chips">
+      <span class="chip">การควบคุมการเข้าถึง</span>
+      <span class="chip">การรักษาความลับของข้อมูล</span>
+      <span class="chip">ความพร้อมใช้งาน</span>
+      <span class="chip">แผนยกระดับ</span>
+    </div>
+  </section>
+
+  <!-- 2: EXEC SUMMARY -->
+  <section class="slide">
+    <div class="eyebrow">Executive Summary</div>
+    <h2 class="t1" style="font-size:clamp(26px,3.6vw,46px)">3 สิ่งที่เรากันไว้อยู่แล้ว</h2>
+    <div class="grid g3">
+      <div class="card"><div class="big">เฉพาะทีม</div><h4>เข้าถึงได้เฉพาะพนักงาน</h4><p>ต้องใช้ รหัสพนักงาน + รหัสผ่าน ทุกครั้ง พร้อมตัดสิทธิ์ทันทีเมื่อลาออก — บทบาท Admin ถูกกันไว้ที่ฝั่งเซิร์ฟเวอร์</p></div>
+      <div class="card"><div class="big">สายส่งปลอดภัย</div><h4>ข้อมูลส่งผ่าน HTTPS เท่านั้น</h4><p>Key ต่าง ๆ เก็บเป็นตัวแปรระบบ ไม่เข้าโค้ดและไม่ลงเบราว์เซอร์ · ตรวจสอบลายเซ็นการเชื่อมต่อกับ LINE</p></div>
+      <div class="card"><div class="big">มีสำรองอัตโนมัติ</div><h4>ข้อมูลมี Backup ทุก 6 ชม.</h4><p>ฐานข้อมูลถูกสำรองส่งเข้าช่องทาง LINE/Telegram อัตโนมัติ รับมือกรณีเซิร์ฟเวอร์ถูกทำลาย</p></div>
+    </div>
+  </section>
+
+  <!-- 3: ACCESS CONTROL -->
+  <section class="slide">
+    <div class="eyebrow">1 · Access Control</div>
+    <h2 class="t1" style="font-size:clamp(26px,3.6vw,46px)">ใครเข้าอะไรได้บ้าง</h2>
+    <div class="grid g2" style="max-width:1000px">
+      <div class="card"><div class="big">2</div><h4>บทบาทชัดเจน</h4><p><b style="color:var(--gold)">พนักงาน</b> — ดูและจัดการงานตามสิทธิ์<br><b style="color:var(--gold)">ผู้ดูแลระบบ</b> — ตั้งค่า, จัดการพนักงาน, ลบงาน<br>เส้นทางทั้งหมดเช็คสิทธิ์ที่ Back-end มิใช่แค่ซ่อนปุ่มบนหน้าเว็บ</p></div>
+      <div class="card"><div class="big">Token</div><h4>ยืนยันตัวตนทุกคำขอ</h4><p>ระบบออก JWT Token ที่หมดอายุได้ เมื่อเข้าสู่ระบบแล้ว การเรียก API ทุกครั้งต้องพก Token ที่ถูกต้อง<br><span class="k" style="color:var(--green)">รหัสผ่านเก็บเป็น Hash — ไม่มีรหัสจริงอยู่ในระบบ</span></p></div>
+    </div>
+  </section>
+
+  <!-- 4: TRANSPORT & SECRETS -->
+  <section class="slide">
+    <div class="eyebrow">2 · Data in Transit</div>
+    <h2 class="t1" style="font-size:clamp(26px,3.6vw,46px)">เส้นทางข้อมูลมีกุญแจครบ</h2>
+    <div class="grid g3">
+      <div class="card"><div class="big">TLS</div><h4>HTTPS ทั้งหมด</h4><p>ทุกหน้า ทุก API ถูกเข้ารหัสด้วย TLS ผ่านโครงสร้างพื้นฐานของ Render</p></div>
+      <div class="card"><div class="big">ENV</div><h4>Secrets ไม่เข้าอุปกรณ์</h4><p>Key ของ LINE · Telegram · JWT เก็บใน Environment Variables ไม่ลงโค้ด และไม่ส่งลงเบราว์เซอร์ของผู้ใช้</p></div>
+      <div class="card"><div class="big">HMAC</div><h4>ตรวจสอบ Webhook</h4><p>การเชื่อมต่อที่เข้ามาจาก LINE ต้องผ่านการตรวจลายเซ็น HMAC-SHA256</p></div>
+    </div>
+    <p class="lead" style="font-size:clamp(13px,1.3vw,16px);color:var(--mut)">สถาปัตยกรรมฝั่งเดียว (Single-tenant) — ข้อมูลของบริษัทเราอยู่ในระบบของเราคนเดียว ไม่มีการแชร์ข้ามองค์กร</p>
+  </section>
+
+  <!-- 5: DATA & BACKUP -->
+  <section class="slide">
+    <div class="eyebrow">3 · Data Resilience</div>
+    <h2 class="t1" style="font-size:clamp(26px,3.6vw,46px)">ข้อมูลอยู่ที่ไหน และอยู่รอดแค่ไหน</h2>
+    <div class="grid g2" style="max-width:980px">
+      <div class="card"><div class="big" style="color:var(--green)">DB อัตโนมัติ</div><h4>ฐานข้อมูลความปลอดภัย</h4><p>จัดเก็บบนเซิร์ฟเวอร์ (SQLite) บันทึกอัตโนมัติต่อเนื่อง ป้องกันข้อมูลหลัก (งาน, รายการสินทรัพย์, งบประมาณซ่อม)</p></div>
+      <div class="card"><div class="big" style="color:var(--green)">6 ชม.</div><h4>Backup ไปยัง LINE / Telegram</h4><p>สำรองฐานข้อมูลฉบับสมบูรณ์ส่งเข้าแชทที่ตั้งไว้ทุก 6 ชั่วโมง — ข้อมูลยังอยู่แม้เซิร์ฟเวอร์ถูกทำลาย</p></div>
+    </div>
+  </section>
+
+  <!-- 6: RISK TABLE -->
+  <section class="slide">
+    <div class="eyebrow">4 · Risk Assessment</div>
+    <h2 class="t1" style="font-size:clamp(26px,3.6vw,46px)">สิ่งที่แข็งแล้ว กับที่ยังต้องยก</h2>
+    <table>
+      <tr><th class="tdh">หัวข้อ</th><th class="tdh">สถานะวันนี้</th><th class="tdh">แผนยกระดับ</th><th class="tdh">ความเร่งด่วน</th></tr>
+      <tr><td>การยืนยันตัวตน + สิทธิ์</td><td>เข้าถึงได้เฉพาะพนักงาน · JWT · Admin กันฝั่งเซิร์ฟเวอร์</td><td>—</td><td><span class="pill p-a">พร้อมใช้งาน</span></td></tr>
+      <tr><td>HTTPS / Secrets</td><td>ทุกเส้นทางเข้ารหัส · Key อยู่ใน Environment</td><td>จำกัดโดเมน CORS ให้แคบลง</td><td><span class="pill p-a">พร้อมใช้งาน</span></td></tr>
+      <tr><td>สำรองข้อมูล</td><td>Backup อัตโนมัติทุก 6 ชม. ไป LINE/Telegram</td><td>ย้าย Backup ไป Cloud Storage</td><td><span class="pill p-a">พร้อมใช้งาน</span></td></tr>
+      <tr><td>รหัสผ่าน</td><td>Hash แบบ SHA-256</td><td>อัปเกรดเป็น bcrypt + Salt</td><td><span class="pill p-m">ควรทำ</span></td></tr>
+      <tr><td>พยายามเดารหัสซ้ำ</td><td>ยังไม่มีจำกัดครั้ง</td><td>เพิ่ม Rate-limit + ล็อกชั่วคราว</td><td><span class="pill p-m">ควรทำ</span></td></tr>
+      <tr><td>Webhook</td><td>รับตรวจลายเซ็น (โหมดตั้งค่า)</td><td>ปิดเป็นโหมดตรวจแบบเข้ม</td><td><span class="pill p-m">ควรทำ</span></td></tr>
+      <tr><td>โครงสร้างรองรับ</td><td>Free Tier — ข้อมูลรีเซ็ตเมื่อ Re-deploy</td><td>ย้ายโฮสต์แบบเสียเงิน (VM ~3–5 USD/เดือน)</td><td><span class="pill p-h">แนะนำ</span></td></tr>
+    </table>
+  </section>
+
+  <!-- 7: ROADMAP -->
+  <section class="slide">
+    <div class="eyebrow">5 · Roadmap</div>
+    <h2 class="t1" style="font-size:clamp(26px,3.6vw,46px)">ข้อเสนอสู่มาตรฐานองค์กร</h2>
+    <div class="grid g3">
+      <div class="card"><div class="big">2–3 วัน</div><h4>ยกระดับล็อกอิน</h4><p>bcrypt + Salt · จำกัดความพยายามเดารหัส · ล็อกบัญชีอัตโนมัติชั่วคราว</p></div>
+      <div class="card"><div class="big">3–5 วัน</div><h4>ตรวจสอบนิรภัย</h4><p>ปิด Webhook แบบเข้ม · จำกัด CORS · Audit Log ว่าใครเข้าดูอะไร</p></div>
+      <div class="card"><div class="big">สัปดาห์</div><h4>โครงสร้างจริงจัง</h4><p>ย้ายไป VM ส่วนบุคคล ข้อมูลถาวร + Backup หลายชั้น + โดเมนเป็นทางการ</p></div>
+    </div>
+    <p class="lead" style="font-size:clamp(13px,1.4vw,17px);color:var(--mut)">งบโดยประมาณระยะแรก: <b style="color:var(--gold)">ค่าบริการเซิร์ฟเวอร์ 3–5 USD/เดือน</b> — ความเสี่ยงด้านข้อมูลลดลงทันที</p>
+  </section>
+
+  <!-- 8: CLOSING -->
+  <section class="slide">
+    <div class="eyebrow">Conclusion</div>
+    <h1 class="t1">ระบบพร้อมใช้งานวันนี้<br>พร้อมยกระดับตามนี้ได้ทันที</h1>
+    <div class="u-line"></div>
+    <p class="lead">การเข้าถึง ถูกปิดวงแคบเฉพาะทีม · การส่งข้อมูล ถูกรักษาความลับ · ข้อมูลมีสำรอง<br><b>จุดที่ต้องลงทุนเพิ่ม = โครงสร้างเซิร์ฟเวอร์ถาวร</b> ซึ่งเป็นค่าใช้จ่ายเพียงเล็กน้อย</p>
+    <div class="chips"><span class="chip">ขออนุโมทนา และพร้อมรับข้อเสนอครับ</span></div>
+  </section>
+
+</div>
+
+<div class="note" id="notes"></div>
+<div class="notes" id="notesPanel"></div>
+
+<div class="foot">HELPDESKPRO · REV 1.0</div>
+<div class="count"><b id="cCur">01</b> / <span id="cMax">08</span></div>
+<div class="dots" id="dots"></div>
+<button class="navbtn l" onclick="go(-1)">◀</button>
+<button class="navbtn r" onclick="go(1)">▶</button>
+
+<script>
+  const slides=[...document.querySelectorAll('.slide')];
+  const notes=[
+    'สไลด์เปิดตัว — เปิดด้วยเป้าหมาย: “วันนี้จะสรุปว่าข้อมูลเสี่ยงตรงไหน กันไว้แล้วอะไร และต้องตัดสินใจอะไร”',
+    'ภาพรวม 3 แกน — บอกโทนบวก: เข้าถึงเฉพาะทีม, สายส่งปลอดภัย, มีสำรองอัตโนมัติ.',
+    'เน้นคำว่า “ตรวจสิทธิ์ที่เซิร์ฟเวอร์” ตอบข้อกังวล “กดแอบดูโค้ดปุ่ม admin ได้ไหม” → ไม่ได้',
+    'อธิบายว่า Environment Variables = ไม่มี key อยู่ในโค้ด ไม่รั่วผ่านเบราว์เซอร์/มือถือพนักงาน',
+    'ชี้ว่า Backup อยู่ LINE/Telegram = ข้อมูลอยู่รอดแม้เซิร์ฟเวอร์พัง. รับคำถามเรื่องความถี่ได้: ปรับได้',
+    'หัวใจของพรีเซนต์ — ตรงไปตรงมา: เสี่ยงหลัก = Free Tier รีเซ็ตข้อมูล, รหัส = ควร bcrypt. “เราไม่ซ่อน เราบอกสถานะจริง”',
+    'ลงท้ายด้วยงบเล็ก ๆ ~3–5 USD/เดือน — ตัดสินใจง่าย น้ำหนักน้อย',
+    'ปิดด้วย “พร้อมเริ่มทันที”. เปิด Q&A'
+  ];
+  let i=0;
+  const dots=document.getElementById('dots');
+  slides.forEach((s,n)=>{const d=document.createElement('span');d.className='dot'+(n===0?' on':'');d.onclick=()=>show(n);dots.appendChild(d);});
+  const dotEls=[...document.querySelectorAll('.dot')];
+  function show(n){i=Math.max(0,Math.min(slides.length-1,n));
+    slides.forEach((s,x)=>s.classList.toggle('active',x===i));
+    dotEls.forEach((d,x)=>d.classList.toggle('on',x===i));
+    document.getElementById('cCur').textContent=String(i+1).padStart(2,'0');
+    document.getElementById('cMax').textContent=String(slides.length).padStart(2,'0');
+  }
+  function go(d){show(i+d)}
+  window.addEventListener('keydown',e=>{
+    if(e.key==='ArrowRight'||e.key===' '||e.key==='PageDown'){e.preventDefault();show(i+1)}
+    else if(e.key==='ArrowLeft'||e.key==='PageUp'){e.preventDefault();show(i-1)}
+    else if(e.key==='Home'){show(0)}
+    else if(e.key==='End'){show(slides.length-1)}
+    else if(e.key.toLowerCase()==='n'){const p=document.getElementById('notesPanel');p.classList.toggle('show');p.textContent='[คำพูดประกอบ — สไลด์ '+(i+1)+']\n\n'+notes[i]}
+    else if(e.key.toLowerCase()==='f'){if(!document.fullscreenElement){document.documentElement.requestFullscreen()}else{document.exitFullscreen()}}
+  });
+  let tx=null;
+  window.addEventListener('touchstart',e=>{tx=e.touches[0].clientX},{passive:true});
+  window.addEventListener('touchend',e=>{if(tx===null)return;const dx=e.changedTouches[0].clientX-tx;if(dx>40)show(i-1);if(dx<-40)show(i+1);tx=null;},{passive:true});
+</script>
+</body>
+</html>

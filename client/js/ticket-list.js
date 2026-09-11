@@ -75,7 +75,8 @@ function renderList() {
       </td>
       <td style="padding:14px 16px;max-width:260px;">
         <div style="font-size:13px;color:#e2eaf7;white-space:normal;line-height:1.4;">${r.title || '-'}</div>
-        <div style="margin-top:4px;display:flex;gap:4px;flex-wrap:wrap;">
+        ${r.photo_url ? `<div style="margin-top:6px;"><a href="${r.photo_url}" target="_blank" rel="noopener"><img src="${r.photo_url}" alt="รูปแนบ" style="width:52px;height:52px;object-fit:cover;border-radius:8px;border:1px solid rgba(255,255,255,0.15);" title="เปิดรูปแนบ"></a></div>` : ''}
+        <div style="margin-top:4px;display:flex;gap:4px;flex-wrap:wrap;${r.photo_url ? 'margin-left:0;' : ''}">
           <span class="chip" style="background:rgba(124,58,237,0.08);color:rgba(168,85,247,0.8);border-color:rgba(124,58,237,0.15);">${r.category || '-'}</span>
           <span class="chip" style="background:rgba(0,212,255,0.04);color:var(--text-muted);">👤 ${r.reporter_name || '-'}</span>
         </div>
@@ -108,10 +109,42 @@ function openUpdateModal(id) {
   document.getElementById('u_cost').value = r.cost || 0;
   document.getElementById('u_notes').value = r.notes || '';
   selectStatus(r.status || 'รอดำเนินการ');
+
+  // รูปภาพ
+  const disp = document.getElementById('u_photoDisplay');
+  disp.innerHTML = r.photo_url
+    ? `<img src="${r.photo_url}" alt="รูปเดิม" style="max-width:120px;max-height:120px;object-fit:cover;border-radius:10px;border:1px solid rgba(255,255,255,0.15);cursor:pointer;" onclick="window.open('${r.photo_url}','_blank')" title="เปิดรูปเดิม (ขยาย)">
+       <span style="font-size:12px;color:var(--text-muted);align-self:center;">รูปเดิมของงานนี้</span>`
+    : `<span style="font-size:12px;color:var(--text-muted);">ยังไม่มีรูป</span>`;
+  document.getElementById('u_photoFile').value = '';
+  document.getElementById('u_photoRemove').checked = false;
+  clearUPhotoPreview();
+
   document.getElementById('updateModal').style.display = 'flex';
 }
 
+function clearUPhotoPreview() {
+  const box = document.getElementById('u_photoPreview');
+  box.style.display = 'none';
+  document.getElementById('u_photoPreviewImg').src = '';
+  box.querySelector('.btn-cancel-sm') && (box.querySelector('.btn-cancel-sm').style.display = '');
+  document.getElementById('u_photoRemove').checked = false;
+}
+
 function closeUpdateModal() { document.getElementById('updateModal').style.display = 'none'; }
+
+document.addEventListener('DOMContentLoaded', () => {
+  const uf = document.getElementById('u_photoFile');
+  if (uf) uf.addEventListener('change', function () {
+    const box = document.getElementById('u_photoPreview');
+    const img = document.getElementById('u_photoPreviewImg');
+    if (this.files && this.files[0]) {
+      const rd = new FileReader();
+      rd.onload = e => { img.src = e.target.result; box.style.display = 'flex'; document.getElementById('u_photoRemove').checked = false; };
+      rd.readAsDataURL(this.files[0]);
+    } else { box.style.display = 'none'; img.src = ''; }
+  });
+});
 
 async function saveUpdate() {
   const btn = document.getElementById('updateBtn');
@@ -127,6 +160,17 @@ async function saveUpdate() {
   };
 
   try {
+    // รูปใหม่
+    const fileInput = document.getElementById('u_photoFile');
+    if (fileInput.files && fileInput.files[0]) {
+      const formData = new FormData();
+      formData.append('photo', fileInput.files[0]);
+      const up = await API.upload('/api/upload', formData);
+      payload.photo_url = up.url;
+    } else if (document.getElementById('u_photoRemove').checked) {
+      payload.photo_url = null;
+    }
+
     await API.put(`/api/tickets/${id}`, payload);
     closeUpdateModal();
     showModal('อัปเดตสำเร็จ', 'บันทึกสถานะและอัปเดตเรียบร้อยแล้ว');
