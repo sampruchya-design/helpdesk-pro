@@ -118,14 +118,45 @@ async function notifyStatusUpdate(ticket, oldStatus) {
     'ส่งซ่อมภายนอก': '📤', 'เสร็จสิ้น': '✅'
   };
 
+  // ✅ เมื่ออัปเดตมาเป็น "เสร็จสิ้น" → สรุปครบทั้งตอนแจ้งและตอนเสร็จ
+  if (ticket.status === 'เสร็จสิ้น') {
+    const priorityEmoji = {
+      'ด่วนมาก': '🔴 ด่วนมาก', 'ด่วน': '🟡 ด่วน', 'ปกติ': '🟢 ปกติ'
+    };
+    const msg = [
+      `✅ เสร็จสิ้น #${ticket.ticket_no}`,
+      `━━━━━━━━━━━━━━━━━━`,
+      `📋 รายละเอียดตอนแจ้ง`,
+      `👤 ผู้แจ้ง: ${ticket.reporter_name}`,
+      `📍 สถานที่: ${ticket.location}`,
+      `📂 หมวดหมู่: ${ticket.category}`,
+      `⚠️ ความสำคัญ: ${priorityEmoji[ticket.priority] || ticket.priority}`,
+      `🩺 อาการเสีย: ${ticket.title}`,
+      ticket.asset_id && ticket.asset_id !== '-' ? `🏷️ ทรัพย์สิน: ${ticket.asset_id}` : '',
+      photoLinks(ticket.photos, '📎 รูปตอนแจ้ง'),
+      `━━━━━━━━━━━━━━━━━━`,
+      `📋 รายละเอียดตอนเสร็จ`,
+      `👨‍🔧 ช่าง: ${ticket.technician}`,
+      ticket.cost > 0 ? `💰 ค่าใช้จ่าย: ฿${Number(ticket.cost).toLocaleString()}` : '',
+      ticket.notes ? `🔧 การแก้ไขตรวจซ่อม: ${ticket.notes}` : '',
+      photoLinks(ticket.photos_done, '📸 รูปตอนเสร็จ/ผลงาน'),
+      `━━━━━━━━━━━━━━━━━━`,
+      `⏰ ${new Date().toLocaleString('th-TH', { timeZone: 'Asia/Bangkok' })}`
+    ].filter(Boolean).join('\n');
+
+    await Promise.allSettled([sendLINE(msg), sendTelegram(msg)]);
+    return;
+  }
+
+  // ขั้นกลาง (ยังไม่เสร็จสิ้น) — ฟอร์แมตสั้น
   const msg = [
     `📋 อัปเดตสถานะ #${ticket.ticket_no}`,
     `━━━━━━━━━━━━━━━━━━`,
     `${statusEmoji[oldStatus] || '❓'} ${oldStatus} → ${statusEmoji[ticket.status] || '❓'} ${ticket.status}`,
     ticket.technician && ticket.technician !== '-' ? `👨‍🔧 ช่าง: ${ticket.technician}` : '',
     ticket.cost > 0 ? `💰 ค่าใช้จ่าย: ฿${Number(ticket.cost).toLocaleString()}` : '',
-    ticket.notes ? `📝 บันทึกเพิ่มเติม: ${ticket.notes}` : '',
-    `📝 ${ticket.title}`,
+    ticket.notes ? `🔧 บันทึกเพิ่มเติม: ${ticket.notes}` : '',
+    `📝 ปัญหา: ${ticket.title}`,
     photoLinks(ticket.photos_done, '📸 รูปตอนเสร็จ/ผลงาน'),
     photoLinks(ticket.photos, '📎 รูปตอนแจ้ง'),
     `━━━━━━━━━━━━━━━━━━`,
