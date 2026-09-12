@@ -74,7 +74,7 @@ function drawHeader(doc, page, fontBold, fontLight) {
   page.drawRectangle({ x: 0, y: H - 60, width: W, height: 60, color: hexToRgb('#0b1220') });
   page.drawRectangle({ x: 0, y: H - 63, width: W, height: 3, color: hexToRgb('#00d4ff') });
   page.drawText('KM (Knowledge Management)', { x: M, y: H - 30, size: 13, font: fontBold, color: hexToRgb('#00d4ff') });
-  page.drawText('HelpdeskPro · ระบบจัดการความรู้', { x: M, y: H - 48, size: 8, font: fontLight, color: hexToRgb('#9fb3c8') });
+  page.drawText('Thai PBS · HelpdeskPro ระบบจัดการความรู้', { x: M, y: H - 48, size: 8, font: fontLight, color: hexToRgb('#9fb3c8') });
   page.drawText('ส่วนงานวิศวกรรมสระแก้ว ฝ่ายระบบส่งสัญญาณ ภาค 1 สำนักวิศวกรรม', { x: W - M, y: H - 30, size: 8, font: fontLight, color: hexToRgb('#9fb3c8'), xMax: W - M, align: 'right' });
 }
 
@@ -85,21 +85,23 @@ function beginPage(doc, fontBold, fontLight) {
 }
 
 function drawWorkBox(page, km, fontBold, fontReg, yTop) {
-  const bw = 300, bh = 118, bx = (W - bw) / 2;
+  const bw = 300, bh = 140, bx = (W - bw) / 2;
   page.drawRectangle({ x: bx - 4, y: yTop - bh - 4, width: bw + 8, height: bh + 8, color: hexToRgb('#0b1220'), opacity: 0.05 });
   page.drawRectangle({ x: bx, y: yTop - bh, width: bw, height: bh, borderColor: hexToRgb('#0b1220'), borderWidth: 1.2, color: hexToRgb('#ffffff') });
   page.drawRectangle({ x: bx, y: yTop - 24, width: bw, height: 24, color: hexToRgb('#0b1220') });
-  page.drawText('ข้อมูลงาน', { x: bx + 8, y: yTop - 17, size: 10, font: fontBold, color: hexToRgb('#ffffff') });
+  page.drawText('1. ส่วนหัวและข้อมูลทั่วไป', { x: bx + 8, y: yTop - 17, size: 10, font: fontBold, color: hexToRgb('#ffffff') });
   const field = (label, value, yy) => {
-    page.drawText(label, { x: bx + 8, y: yy, size: 10, font: fontBold, color: hexToRgb('#0b1220') });
+    page.drawText(label, { x: bx + 8, y: yy, size: 9, font: fontBold, color: hexToRgb('#0b1220') });
     const v = String(value || '-');
-    const wrapped = wrapText(fontReg, v, bw - 130, 10);
-    page.drawText(wrapped.length ? wrapped[0] : '', { x: bx + 130, y: yy, size: 10, font: fontReg, color: hexToRgb('#334155') });
-    if (wrapped.length > 1) page.drawText(wrapped[1], { x: bx + 130, y: yy - 14, size: 10, font: fontReg, color: hexToRgb('#334155') });
+    const wrapped = wrapText(fontReg, v, bw - 130, 9);
+    page.drawText(wrapped.length ? wrapped[0] : '', { x: bx + 130, y: yy, size: 9, font: fontReg, color: hexToRgb('#334155') });
+    if (wrapped.length > 1) page.drawText(wrapped[1], { x: bx + 130, y: yy - 13, size: 9, font: fontReg, color: hexToRgb('#334155') });
+    if (wrapped.length > 2) page.drawText(wrapped[2], { x: bx + 130, y: yy - 26, size: 9, font: fontReg, color: hexToRgb('#334155') });
   };
-  field('สถานที่', km.location, yTop - 42);
+  field('สถานที่ปฏิบัติงาน', km.location, yTop - 42);
   field('เจ้าหน้าที่ผู้ปฏิบัติงาน', km.operator, yTop - 66);
   field('ผู้บังคับบัญชา/ที่ปรึกษา', km.supervisor, yTop - 88);
+  field('จัดทำโดย (ส่วนงาน)', km.created_by || (km.source === 'auto-ticket' ? 'ระบบ KM อัตโนมัติ' : '-'), yTop - 112);
   return yTop - bh;
 }
 
@@ -165,38 +167,49 @@ async function buildKMPDF(km) {
   const drawLines = (text) => {
     const lines = String(text || '').split('\n').map(l => l.trim()).filter(Boolean);
     lines.forEach(l => {
-      const wrapped = wrapText(fontReg, l, MAXW, 12);
+      // รองรับ markdown หัวข้อย่อย (**ข้อความ**) → วาดเป็นบรรทัดเน้นเข้ม
+      const boldHead = /^\*\*(.+?)\*\*\s*:?$/.exec(l);
+      const body = l.replace(/^\*\*(.+?)\*\*\s*:?\s*/, '');
+      const wrapped = wrapText(fontReg, body, MAXW, 12);
       wrapped.forEach(w => {
         ensureRoom(30);
-        page.drawText(w, { x: M, y, size: 12, font: fontReg, color: hexToRgb('#1e293b') });
+        if (boldHead && w === wrapped[0]) {
+          page.drawText(w, { x: M, y, size: 12, font: fontBold, color: hexToRgb('#0b1220') });
+        } else {
+          page.drawText(w, { x: M, y, size: 12, font: fontReg, color: hexToRgb('#1e293b') });
+        }
         y -= 20;
       });
     });
     y -= 8;
   };
 
-  drawHeading(1, 'เหตุการณ์');
+  drawHeading(2, 'เหตุการณ์และที่มา (Incident & Background)');
   if (km.symptom && String(km.symptom).trim()) {
-    drawLines(`🩺 อาการเสีย: ${String(km.symptom).trim()}`);
+    drawLines(`🩺 อาการผิดปกติ: ${String(km.symptom).trim()}`);
   }
-  drawLines(km.content);
+  drawLines(km.content || '-');
 
-  drawHeading(2, 'ข้อมูลเทคนิคของอุปกรณ์');
-  drawLines(km.tech_info);
+  drawHeading(3, 'ข้อมูลเทคนิคของอุปกรณ์ (Technical Specifications)');
+  drawLines(km.tech_info || '-');
 
-  drawHeading(3, 'ขั้นตอนการตรวจซ่อม');
-  drawLines(km.steps);
+  drawHeading(4, 'ขั้นตอนการตรวจซ่อม (Troubleshooting & Repair Steps)');
+  drawLines(km.steps || '-');
 
-  // ===== 4. รูปแสดงอุปกรณ์และการตรวจซ่อม =====
-  drawHeading(4, 'รูปแสดงอุปกรณ์และการตรวจซ่อม');
+  // ===== 5. รูปแสดงอุปกรณ์และหลักฐาน =====
+  drawHeading(5, 'รูปแสดงอุปกรณ์และหลักฐาน (Visual Evidence)');
   let photos = Array.isArray(km.images) ? km.images : [];
   if (!Array.isArray(km.images)) { try { photos = JSON.parse(km.images || '[]'); } catch (e) { photos = []; } }
   photos = (photos || []).filter(Boolean);
   if (photos.length) {
     photos.forEach((u, idx) => {
-      if (y < 160) { page = beginPage(doc, fontBold, fontLight); y = H - 110; }
+      if (y < 210) { page = beginPage(doc, fontBold, fontLight); y = H - 110; }
       const drawn = drawImageInPage(page, doc, u, fontReg, M, y, MAXW / 2 - 6, 180);
-      if (drawn) y -= 210;
+      if (drawn) {
+        y -= 205;
+        page.drawText(`รูปที่ 1.${idx + 1} ${km.title || 'รูปประกอบการตรวจซ่อม'}`, { x: M + 2, y, size: 8, font: fontLight, color: hexToRgb('#94a3b8'), maxWidth: MAXW - 4 });
+        y -= 16;
+      }
     });
   } else {
     drawLines('(ไม่มีการแนบรูป)');

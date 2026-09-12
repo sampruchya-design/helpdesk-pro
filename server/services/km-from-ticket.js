@@ -56,6 +56,21 @@ function createKMFromTicket(ticket) {
     else if (Array.isArray(reported)) images.push(...reported.filter(Boolean).slice(0, 10));
 
     const title = (ticket.title || '').trim();
+    const loc = pickLocation(ticket) || '';
+    const techExtra = (ticket.category_detail || '').trim();
+    const assetExtra = (ticket.asset_id && ticket.asset_id !== '-' ? `\n- อุปกรณ์/ทรัพย์สิน: ${ticket.asset_id}` : '');
+    // เทมเพลตมาตรฐาน 5 ส่วน: รวบรวมข้อมูลจากงานบังจริง → เก็บตามฟิลด์ (symptom/content/tech_info/steps)
+    const content = [
+      '**เหตุการณ์:**',
+      `${title}`,
+      '',
+      `**ที่มา/แนวทางการตรวจซ่อม:**`,
+      guideline
+    ].join('\n');
+    const techInfo = `${techExtra ? `- หมวดย่อยงาน: ${techExtra}` : '- หมวดย่อยงาน: -'}${assetExtra}`;
+    // แนวทางซ่อมที่กรอกตอนปิดงาน → ใส่เข้า "ขั้นตอนการตรวจซ่อม" ให้ PDF/การ์ดแสดงครบ 5 ส่วน
+    const steps = guideline;
+
     // ticket.category ในระบบแจ้งซ่อมคือระดับความจำเป็น (จำเป็น/ด่วน/ปกติ) ไม่ใช่หมวดระบบจริง
     // → ส่งให้ autoCategory เฉพาะเมื่อตรงกับหมวดหมู่จริงในตาราง categories เฉยๆ
     let seedCategory = '';
@@ -66,13 +81,13 @@ function createKMFromTicket(ticket) {
     const finalCategory = autoCategory({
       category: seedCategory,
       symptom: title,
-      location: pickLocation(ticket),
+      location: loc,
       operator: ticket.technician || '',
       supervisor: ticket.reporter_name || '',
       title,
-      content: guideline,
-      tech_info: ticket.category_detail || '',
-      steps: ''
+      content,
+      tech_info: techInfo,
+      steps
     });
 
     const r = runQuery(
@@ -82,12 +97,12 @@ function createKMFromTicket(ticket) {
         title,
         finalCategory,
         title,
-        pickLocation(ticket) || '',
+        loc,
         (ticket.technician || '').trim(),
         (ticket.reporter_name || '').trim(),
-        guideline,
-        (ticket.category_detail || '').trim(),
-        '',
+        content,
+        techInfo,
+        steps,
         JSON.stringify(images),
         (ticket.ticket_no || '').trim(),
         (ticket.technician || ticket.tech_by || 'ระบบ').trim()
