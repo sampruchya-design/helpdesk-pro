@@ -101,7 +101,7 @@ function drawWorkBox(page, km, fontBold, fontReg, yTop) {
   field('สถานที่ปฏิบัติงาน', km.location, yTop - 42);
   field('เจ้าหน้าที่ผู้ปฏิบัติงาน', km.operator, yTop - 66);
   field('ผู้บังคับบัญชา/ที่ปรึกษา', km.supervisor, yTop - 88);
-  field('จัดทำโดย (ส่วนงาน)', km.created_by || (km.source === 'auto-ticket' ? 'ระบบ KM อัตโนมัติ' : '-'), yTop - 112);
+  field('จัดทำโดย (ส่วนงาน)', km.created_by || '-', yTop - 112);
   return yTop - bh;
 }
 

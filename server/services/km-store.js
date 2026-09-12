@@ -1,6 +1,6 @@
 // ==========================================
-//  KM STORE — สร้างเอกสาร KM กลาง (ใช้ซ้ำที่ routes/kms + km-from-ticket)
-//  รวม: auto-categorize + INSERT ไว้จุดเดียว ป้องกันโค้ดซ้ำ 3 แห่ง
+//  KM STORE — สร้างเอกสาร KM กลาง (ใช้ซ้ำที่ routes/kms)
+//  รวม: auto-categorize เมื่อไม่ระบุหมวด + INSERT ไว้จุดเดียว ป้องกันโค้ดซ้ำ
 // ==========================================
 const { runQuery } = require('../database');
 const { autoCategory } = require('./km-categorize');

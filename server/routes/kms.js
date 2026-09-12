@@ -81,6 +81,8 @@ router.post('/', authMiddleware, uploadKM.array('files', 11), (req, res) => {
       file_url, file_type, ticket_no,
       created_by: (req.user.name || '')
     });
+    const io = req.app.get('io');
+    if (io) io.emit('km:created', { id: result.id });
     res.json({ status: 'success', id: result.id, message: 'บันทึก KM สำเร็จ' });
   } catch (e) {
     console.error('[KM] POST error:', e.message);
