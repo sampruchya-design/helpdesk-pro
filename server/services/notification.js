@@ -5,6 +5,14 @@ const LINE_TOKEN = process.env.LINE_CHANNEL_ACCESS_TOKEN;
 const LINE_GROUP_ENV = process.env.LINE_GROUP_CHAT_ID;
 const BASE_URL = process.env.RENDER_EXTERNAL_URL || 'https://helpdeskpro-48vl.onrender.com';
 
+// Telegram รองรับenv เพื่อให้รอดทุก deploy (Render เก็บ env ถาวร, DB ถูกล้างเมื่อ redeploy)
+function tgConfig() {
+  return {
+    token: process.env.TELEGRAM_BOT_TOKEN || getSetting('TELEGRAM_BOT_TOKEN') || '',
+    chat: process.env.TELEGRAM_GROUP_CHAT_ID || getSetting('TELEGRAM_GROUP_CHAT_ID') || ''
+  };
+}
+
 function photoLinks(list, label) {
   list = (list || []).filter(Boolean).slice(0, 5);
   if (!list.length) return '';
@@ -42,8 +50,7 @@ async function sendLINE(message) {
 }
 
 async function sendTelegram(message) {
-  const TG_TOKEN = getSetting('TELEGRAM_BOT_TOKEN');
-  const TG_GROUP = getSetting('TELEGRAM_GROUP_CHAT_ID');
+  const { token: TG_TOKEN, chat: TG_GROUP } = tgConfig();
   if (!TG_TOKEN || !TG_GROUP) {
     const err = new Error('ยังไม่ได้ตั้งค่า Telegram (Bot Token / Chat ID) — ไปที่หน้าแอดมิน');
     console.log('[Telegram] ยังไม่ได้ตั้งค่า — ข้ามการส่ง');
@@ -64,8 +71,7 @@ async function sendTelegram(message) {
 }
 
 async function sendTelegramBackup(fileBuffer) {
-  const TG_TOKEN = getSetting('TELEGRAM_BOT_TOKEN');
-  const TG_GROUP = getSetting('TELEGRAM_GROUP_CHAT_ID');
+  const { token: TG_TOKEN, chat: TG_GROUP } = tgConfig();
   if (!TG_TOKEN || !TG_GROUP) {
     console.log('[Telegram-สำรอง] ยังไม่ได้ตั้งค่า — ข้ามการสำรอง');
     return false;
@@ -221,5 +227,6 @@ async function sendWeeklyReport(data) {
 module.exports = {
   sendLINE, sendTelegram, sendTelegramBackup,
   notifyNewTicket, notifyStatusUpdate,
-  sendDailyReport, sendWeeklyReport
+  sendDailyReport, sendWeeklyReport,
+  tgConfig
 };

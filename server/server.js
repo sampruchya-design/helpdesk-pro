@@ -199,6 +199,13 @@ const PORT = process.env.PORT || 3000;
   await getDB();
   console.log('✅ SQLite database พร้อมแล้ว');
 
+  // Auto-seed Telegram จาก env ลง DB (กัน DB ว่างหลัง redeploy — ทำให้ UI/ค่าใช้งานสอดคล้อง)
+  const { getSetting, setSetting } = require('./database');
+  const { tgConfig } = require('./services/notification');
+  const tg = tgConfig();
+  if (tg.token && !getSetting('TELEGRAM_BOT_TOKEN')) setSetting('TELEGRAM_BOT_TOKEN', tg.token);
+  if (tg.chat && !getSetting('TELEGRAM_GROUP_CHAT_ID')) setSetting('TELEGRAM_GROUP_CHAT_ID', tg.chat);
+
   const { startScheduler } = require('./services/scheduler');
   startScheduler(saveDB);
 

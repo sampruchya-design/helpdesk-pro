@@ -4,25 +4,34 @@ const { authMiddleware, adminOnly } = require('../middleware/auth');
 
 const router = express.Router();
 
-// GET /api/settings (admin only)
+// GET /api/settings (admin only) — ค่าแสดง: env ก่อน (ค้างถาวร), แล้ว DB
 router.get('/', authMiddleware, adminOnly, (req, res) => {
   let refCost = {};
   try { refCost = JSON.parse(getSetting('REF_COST_PRICE') || '{}'); } catch {}
+  const tgToken = process.env.TELEGRAM_BOT_TOKEN || getSetting('TELEGRAM_BOT_TOKEN') || '';
+  const tgChat = process.env.TELEGRAM_GROUP_CHAT_ID || getSetting('TELEGRAM_GROUP_CHAT_ID') || '';
   res.json({
     status: 'success',
     settings: {
-      TELEGRAM_BOT_TOKEN: getSetting('TELEGRAM_BOT_TOKEN') || '',
-      TELEGRAM_GROUP_CHAT_ID: getSetting('TELEGRAM_GROUP_CHAT_ID') || '',
+      TELEGRAM_BOT_TOKEN: tgToken,
+      TELEGRAM_GROUP_CHAT_ID: tgChat,
+      TELEGRAM_SOURCE: process.env.TELEGRAM_BOT_TOKEN ? 'env (ถาวรผ่าน Render)' : (getSetting('TELEGRAM_BOT_TOKEN') ? 'database' : ''),
       LINE_NOTIFY_GROUP_ID: getSetting('LINE_NOTIFY_GROUP_ID') || '',
       REF_COST_PRICE: refCost
     }
   });
 });
 
-// PUT /api/settings (admin only)
+// PUT /api/settings (admin only) — ถ้าค่าเท่ากับ env → ไม่ต้องทับ; ต่างจาก env → กัน env ถูกล้าง
 router.put('/', authMiddleware, adminOnly, (req, res) => {
   const { TELEGRAM_BOT_TOKEN, TELEGRAM_GROUP_CHAT_ID, REF_COST_PRICE } = req.body;
-  if (TELEGRAM_BOT_TOKEN !== undefined) setSetting('TELEGRAM_BOT_TOKEN', String(TELEGRAM_BOT_TOKEN).trim());
+  if (TELEGRAM_BOT_TOKEN !== undefined) {
+    const envT = process.env.TELEGRAM_BOT_TOKEN || '';
+    setSetting('TELEGRAM_BOT_TOKEN', (TELEGRAM_BOT_TOKEN || '').trim());
+    if (TELEGRAM_BOT_TOKEN && envT && TELEGRAM_BOT_TOKEN.trim() !== envT) {
+      console.log('[Settings] Telegram env ต่างจากค่าที่บันทึก — ใช้ env (ถาวร) ที่ตั้งไว้ใน Render');
+    }
+  }
   if (TELEGRAM_GROUP_CHAT_ID !== undefined) setSetting('TELEGRAM_GROUP_CHAT_ID', String(TELEGRAM_GROUP_CHAT_ID).trim());
   if (REF_COST_PRICE !== undefined) setSetting('REF_COST_PRICE', JSON.stringify(REF_COST_PRICE || {}));
   res.json({ status: 'success', message: 'บันทึกการตั้งค่าแล้ว' });
