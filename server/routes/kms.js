@@ -9,6 +9,7 @@ const fs = require('fs');
 const { authMiddleware, adminOnly } = require('../middleware/auth');
 const { runQuery, getAll, getOne } = require('../database');
 const { buildKMPDF } = require('../services/pdf-export');
+const { autoCategory } = require('../services/km-categorize');
 
 const router = express.Router();
 
@@ -71,8 +72,8 @@ router.get('/categories', authMiddleware, (req, res) => {
   }
 });
 
-// POST /api/kms — อัปโหลด KM เอกสาร (file + ข้อมูล)
-router.post('/', authMiddleware, adminOnly, uploadKM.array('files', 11), (req, res) => {
+// POST /api/kms — อัปโหลด KM เอกสาร (file + ข้อมูล) — ทุกคนที่ login ได้
+router.post('/', authMiddleware, uploadKM.array('files', 11), (req, res) => {
   try {
     const { title, category, symptom, location, operator, supervisor, content, tech_info, steps, images, ticket_no } = req.body;
     if (!title || !title.trim()) return res.status(400).json({ status: 'error', message: 'กรุณากรอกหัวข้อเอกสาร KM' });
@@ -93,10 +94,17 @@ router.post('/', authMiddleware, adminOnly, uploadKM.array('files', 11), (req, r
     }
     imgList = imgList.filter(Boolean).slice(0, 10);
 
+    // หมวดหมู่อัจฉริยะ: ถ้าไม่ระบุ (ว่าง/อื่นๆ) → วิเคราะห์จาก title/อาการ/เนื้อหา อัตโนมัติ
+    const finalCategory = autoCategory({
+      category, symptom, location, operator, supervisor,
+      title: String(title || '').trim(),
+      content, tech_info: tech_info || '', steps: steps || ''
+    });
+
     const r = runQuery(
       `INSERT INTO kms (title, category, symptom, location, operator, supervisor, content, tech_info, steps, images, file_url, file_type, source, ticket_no, created_by)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'upload', ?, ?)`,
-      [title.trim(), (category || 'อื่นๆ').trim(), (symptom || '').trim(), (location || '').trim(), (operator || '').trim(),
+      [title.trim(), finalCategory, (symptom || '').trim(), (location || '').trim(), (operator || '').trim(),
        (supervisor || '').trim(), (content || '').trim(), (tech_info || '').trim(), (steps || '').trim(),
        JSON.stringify(imgList), file_url, file_type, (ticket_no || '').trim(),
        (req.user.name || '')]
@@ -108,16 +116,21 @@ router.post('/', authMiddleware, adminOnly, uploadKM.array('files', 11), (req, r
   }
 });
 
-// POST /api/kms/from-analysis — บันทึกผลวิเคราะห์ AI เป็น KM (ไม่มีไฟล์แนบ)
-router.post('/from-analysis', authMiddleware, adminOnly, (req, res) => {
+// POST /api/kms/from-analysis — บันทึกผลวิเคราะห์ AI เป็น KM — ทุกคนที่ login ได้ (ไม่มีไฟล์แนบ)
+router.post('/from-analysis', authMiddleware, (req, res) => {
   try {
     const { title, category, symptom, location, operator, supervisor, content } = req.body;
     if (!title || !title.trim()) return res.status(400).json({ status: 'error', message: 'กรุณากรอกหัวข้อเอกสาร KM' });
 
+    const finalCategory = autoCategory({
+      category, symptom, location, operator, supervisor,
+      title: String(title || '').trim(), content, tech_info: '', steps: ''
+    });
+
     const r = runQuery(
       `INSERT INTO kms (title, category, symptom, location, operator, supervisor, content, tech_info, steps, images, file_url, file_type, source, ticket_no, created_by)
        VALUES (?, ?, ?, ?, ?, ?, ?, '', '', '[]', '', '', 'analysis', '', ?)`,
-      [title.trim(), (category || 'อื่นๆ').trim(), (symptom || '').trim(), (location || '').trim(), (operator || '').trim(),
+      [title.trim(), finalCategory, (symptom || '').trim(), (location || '').trim(), (operator || '').trim(),
        (supervisor || '').trim(), (content || '').trim(), (req.user.name || '')]
     );
     res.json({ status: 'success', id: r.lastInsertRowid, message: 'บันทึกผลวิเคราะห์เป็น KM แล้ว' });
