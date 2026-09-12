@@ -78,42 +78,14 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 function renderPhotoPreviews(fileList) {
-  const files = Array.from(fileList || []).slice(0, 5);
   const box = document.getElementById('photoPreview');
   const count = document.getElementById('photoCount');
-  photoPreviews = [];
-  box.innerHTML = '';
-
-  if (!files.length) {
-    box.style.display = 'none';
+  const n = buildPhotoPreviewBox(fileList, box, photoPreviews, { maxSize: 120, onRemove: removePhotoPreview });
+  if (!n) {
     count.textContent = 'เลือกได้สูงสุด 5 รูป';
     return;
   }
-
-  files.forEach((file, i) => {
-    const rd = new FileReader();
-    rd.onload = e => {
-      const wrap = document.createElement('div');
-      wrap.style.cssText = 'position:relative;';
-      const img = document.createElement('img');
-      img.src = e.target.result;
-      img.style.cssText = 'max-width:120px;max-height:120px;object-fit:cover;border-radius:10px;border:1px solid rgba(255,255,255,0.15);';
-      const rm = document.createElement('button');
-      rm.type = 'button';
-      rm.textContent = '✕';
-      rm.title = 'เอารูปออก';
-      rm.style.cssText = 'position:absolute;top:-6px;right:-6px;width:22px;height:22px;border-radius:50%;background:#11161f;border:1px solid rgba(255,255,255,0.25);color:#fff;font-size:11px;cursor:pointer;line-height:1;';
-      rm.onclick = () => removePhotoPreview(i);
-      wrap.appendChild(img);
-      wrap.appendChild(rm);
-      box.appendChild(wrap);
-    };
-    rd.readAsDataURL(file);
-    photoPreviews.push({ file });
-  });
-
-  box.style.display = 'flex';
-  count.textContent = `เลือกรูป ${files.length}/5`;
+  count.textContent = `เลือกรูป ${n}/5`;
 }
 
 function removePhotoPreview(i) {

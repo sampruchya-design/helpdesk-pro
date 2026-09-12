@@ -153,16 +153,7 @@ async function deleteUser(id) {
 
 async function exportData(format) {
   try {
-    const res = await fetch(`/api/export/${format}`, {
-      headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
-    });
-    if (!res.ok) throw new Error('ส่งออกไม่สำเร็จ');
-    const blob = await res.blob();
-    const a = document.createElement('a');
-    a.href = URL.createObjectURL(blob);
-    a.download = `tickets_export.${format}`;
-    a.click();
-    URL.revokeObjectURL(a.href);
+    await API.download(`/api/export/${format}`, `tickets_export.${format}`);
   } catch (err) {
     showModal('เกิดข้อผิดพลาด', err.message);
   }
@@ -170,16 +161,7 @@ async function exportData(format) {
 
 async function backupDatabase() {
   try {
-    const res = await fetch('/api/backup', {
-      headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
-    });
-    if (!res.ok) throw new Error('สำรองข้อมูลไม่สำเร็จ');
-    const blob = await res.blob();
-    const a = document.createElement('a');
-    a.href = URL.createObjectURL(blob);
-    a.download = `helpdeskpro-backup-${new Date().toISOString().slice(0, 10)}.db`;
-    a.click();
-    URL.revokeObjectURL(a.href);
+    await API.download('/api/backup', `helpdeskpro-backup-${new Date().toISOString().slice(0, 10)}.db`);
     showModal('สำเร็จ', 'ไฟล์ฐานข้อมูลถูกดาวน์โหลดแล้ว — เก็บไว้ที่ปลอดภัย');
   } catch (err) {
     showModal('เกิดข้อผิดพลาด', err.message);

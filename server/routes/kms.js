@@ -3,35 +3,18 @@
 //  CRUD + บันทึกผลวิเคราะห์เป็น KM + Export PDF
 // ==========================================
 const express = require('express');
-const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
 const { authMiddleware, adminOnly } = require('../middleware/auth');
-const { runQuery, getAll, getOne } = require('../database');
+const { getAll, getOne, runQuery } = require('../database');
 const { buildKMPDF } = require('../services/pdf-export');
-const { autoCategory } = require('../services/km-categorize');
+const { insertKM } = require('../services/km-store');
+const { createUpload } = require('../services/upload');
+const { safeJsonParse, pdfDownloadHeaders } = require('../services/utils');
 
 const router = express.Router();
 
-const storage = multer.diskStorage({
-  destination: path.join(__dirname, '..', 'uploads'),
-  filename: (req, file, cb) => {
-    const ext = path.extname(file.originalname);
-    cb(null, `km_${Date.now()}${ext}`);
-  }
-});
-
-const uploadKM = multer({
-  storage,
-  limits: { fileSize: 25 * 1024 * 1024, files: 11 }, // 25MB/ไฟล์, สูงสุด 11 ไฟล์ (1 ปก + 10 รูป)
-  fileFilter: (req, file, cb) => {
-    const allowed = /jpeg|jpg|png|gif|webp|pdf/;
-    const extOk = allowed.test(path.extname(file.originalname).toLowerCase());
-    const mimeOk = allowed.test(file.mimetype);
-    if (extOk && mimeOk) cb(null, true);
-    else cb(new Error('อนุญาตเฉพาะไฟล์รูปภาพ (jpg, png, gif, webp) หรือ PDF'));
-  }
-});
+const uploadKM = createUpload({ prefix: 'km', maxFiles: 11 });
 
 // GET /api/kms — รายการ KM ทั้งหมด (รองรับ filter: ?category= , ?q= ค้นหาอาการเสีย/หัวข้อ/เนื้อหา)
 router.get('/', authMiddleware, (req, res) => {
@@ -44,15 +27,11 @@ router.get('/', authMiddleware, (req, res) => {
       [k.title, k.symptom, k.content, k.location, k.operator, k.ticket_no, k.category]
         .some(v => String(v || '').toLowerCase().includes(q))
     );
-    const mapped = rows.map(km => {
-      let imgs = [];
-      try { imgs = JSON.parse(km.images || '[]'); } catch (e) {}
-      return {
-        ...km,
-        images: Array.isArray(imgs) ? imgs : [],
-        file_url: km.file_url || ''
-      };
-    });
+    const mapped = rows.map(km => ({
+      ...km,
+      images: (() => { const imgs = safeJsonParse(km.images || '[]', []); return Array.isArray(imgs) ? imgs : []; })(),
+      file_url: km.file_url || ''
+    }));
     res.json({ status: 'success', kms: mapped, total: mapped.length });
   } catch (e) {
     res.status(500).json({ status: 'error', message: e.message });
@@ -87,29 +66,22 @@ router.post('/', authMiddleware, uploadKM.array('files', 11), (req, res) => {
     }
 
     let imgList = [];
-    try { imgList = Array.isArray(images) ? images : JSON.parse(images || '[]'); } catch (e) {}
+    if (Array.isArray(images)) imgList = images;
+    else imgList = safeJsonParse(images || '[]', []);
     // รูปอื่นๆ ใน 'files' (ตั้งแต่ตัวที่ 2 ขึ้นไป)
     if (req.files && req.files.length > 1) {
       imgList.push(...req.files.slice(1).map(f => `/uploads/${f.filename}`));
     }
     imgList = imgList.filter(Boolean).slice(0, 10);
 
-    // หมวดหมู่อัจฉริยะ: ถ้าไม่ระบุ (ว่าง/อื่นๆ) → วิเคราะห์จาก title/อาการ/เนื้อหา อัตโนมัติ
-    const finalCategory = autoCategory({
-      category, symptom, location, operator, supervisor,
-      title: String(title || '').trim(),
-      content, tech_info: tech_info || '', steps: steps || ''
+    const result = insertKM({
+      source: 'upload',
+      title, category, symptom, location, operator, supervisor,
+      content, tech_info, steps, images: imgList,
+      file_url, file_type, ticket_no,
+      created_by: (req.user.name || '')
     });
-
-    const r = runQuery(
-      `INSERT INTO kms (title, category, symptom, location, operator, supervisor, content, tech_info, steps, images, file_url, file_type, source, ticket_no, created_by)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'upload', ?, ?)`,
-      [title.trim(), finalCategory, (symptom || '').trim(), (location || '').trim(), (operator || '').trim(),
-       (supervisor || '').trim(), (content || '').trim(), (tech_info || '').trim(), (steps || '').trim(),
-       JSON.stringify(imgList), file_url, file_type, (ticket_no || '').trim(),
-       (req.user.name || '')]
-    );
-    res.json({ status: 'success', id: r.lastInsertRowid, message: 'บันทึก KM สำเร็จ' });
+    res.json({ status: 'success', id: result.id, message: 'บันทึก KM สำเร็จ' });
   } catch (e) {
     console.error('[KM] POST error:', e.message);
     res.status(500).json({ status: 'error', message: e.message });
@@ -122,18 +94,12 @@ router.post('/from-analysis', authMiddleware, (req, res) => {
     const { title, category, symptom, location, operator, supervisor, content } = req.body;
     if (!title || !title.trim()) return res.status(400).json({ status: 'error', message: 'กรุณากรอกหัวข้อเอกสาร KM' });
 
-    const finalCategory = autoCategory({
-      category, symptom, location, operator, supervisor,
-      title: String(title || '').trim(), content, tech_info: '', steps: ''
+    const result = insertKM({
+      source: 'analysis',
+      title, category, symptom, location, operator, supervisor, content,
+      created_by: (req.user.name || '')
     });
-
-    const r = runQuery(
-      `INSERT INTO kms (title, category, symptom, location, operator, supervisor, content, tech_info, steps, images, file_url, file_type, source, ticket_no, created_by)
-       VALUES (?, ?, ?, ?, ?, ?, ?, '', '', '[]', '', '', 'analysis', '', ?)`,
-      [title.trim(), finalCategory, (symptom || '').trim(), (location || '').trim(), (operator || '').trim(),
-       (supervisor || '').trim(), (content || '').trim(), (req.user.name || '')]
-    );
-    res.json({ status: 'success', id: r.lastInsertRowid, message: 'บันทึกผลวิเคราะห์เป็น KM แล้ว' });
+    res.json({ status: 'success', id: result.id, message: 'บันทึกผลวิเคราะห์เป็น KM แล้ว' });
   } catch (e) {
     console.error('[KM] from-analysis error:', e.message);
     res.status(500).json({ status: 'error', message: e.message });
@@ -147,11 +113,7 @@ router.get('/:id/pdf', authMiddleware, async (req, res) => {
     if (!km) return res.status(404).json({ status: 'error', message: 'ไม่พบเอกสาร KM' });
 
     const pdf = await buildKMPDF(km);
-    const base = (km.title || 'KM').replace(/[^\w\s\u0E00-\u0E7F\u0E80-\u0FFF-]+/g, '_').replace(/\s+/g, '_');
-    const enc = encodeURIComponent(base || 'KM');
-    const ascii = (base.replace(/[^\x00-\x7F]/g, '') || 'KM').replace(/[^\w.-]+/g, '_');
-    res.setHeader('Content-Type', 'application/pdf');
-    res.setHeader('Content-Disposition', `inline; filename="${ascii}.pdf"; filename*=UTF-8''${enc}.pdf`);
+    pdfDownloadHeaders(res, km.title);
     res.send(pdf);
   } catch (e) {
     console.error('[KM] PDF error:', e.message);
@@ -174,11 +136,7 @@ router.post('/export-pdf', authMiddleware, async (req, res) => {
       file_url: req.body.file_url || ''
     };
     const pdf = await buildKMPDF(km);
-    const base = (km.title || 'KM').replace(/[^\w\s\u0E00-\u0E7F\u0E80-\u0FFF-]+/g, '_').replace(/\s+/g, '_');
-    const enc = encodeURIComponent(base || 'KM');
-    const ascii = (base.replace(/[^\x00-\x7F]/g, '') || 'KM').replace(/[^\w.-]+/g, '_');
-    res.setHeader('Content-Type', 'application/pdf');
-    res.setHeader('Content-Disposition', `inline; filename="${ascii}.pdf"; filename*=UTF-8''${enc}.pdf`);
+    pdfDownloadHeaders(res, km.title);
     res.send(pdf);
   } catch (e) {
     console.error('[KM] export-pdf error:', e.message);

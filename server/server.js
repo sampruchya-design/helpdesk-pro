@@ -171,6 +171,10 @@ app.use('/api', (req, res) => {
 
 // Catch-all (หน้าเว็บ)
 app.get('*', (req, res) => {
+  // BUG-5: ไฟล์ใน /uploads ที่ไม่มีอยู่ ต้องคืน 404 ไม่ใช่ SPA HTML
+  if (req.path.startsWith('/uploads/')) {
+    return res.status(404).json({ status: 'error', message: 'ไม่พบไฟล์' });
+  }
   if (!req.path.startsWith('/api/')) {
     res.sendFile(path.join(__dirname, '..', 'client', 'index.html'));
   }

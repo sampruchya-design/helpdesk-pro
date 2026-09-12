@@ -1,6 +1,7 @@
 const express = require('express');
 const { getAll, getOne } = require('../database');
 const { authMiddleware } = require('../middleware/auth');
+const { slaAvgHours } = require('../services/stats');
 
 const router = express.Router();
 
@@ -28,16 +29,8 @@ router.get('/', authMiddleware, (req, res) => {
     GROUP BY technician ORDER BY done DESC
   `);
 
-  const slaAvg = getOne(`
-    SELECT AVG(
-      (julianday(s2.changed_at) - julianday(s1.changed_at)) * 24
-    ) as avg_hours
-    FROM sla_log s1
-    JOIN sla_log s2 ON s1.ticket_id = s2.ticket_id
-    WHERE s1.to_status = 'รอดำเนินการ' AND s2.to_status IN ('กำลังซ่อม', 'เสร็จสิ้น')
-  `);
-
   const year = new Date().getFullYear();
+  const slaAvg = slaAvgHours();
   const monthlyCost = getAll(`
     SELECT
       CAST(strftime('%m', created_at) AS INTEGER) as month,
@@ -55,7 +48,7 @@ router.get('/', authMiddleware, (req, res) => {
     byLocation,
     totalCost: totalCost.total,
     techStats,
-    slaAvgHours: slaAvg?.avg_hours ? Math.round(slaAvg.avg_hours * 10) / 10 : null,
+    slaAvgHours: slaAvg != null ? Math.round(slaAvg * 10) / 10 : null,
     monthlyCost
   });
 });

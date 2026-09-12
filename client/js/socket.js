@@ -22,6 +22,10 @@ function initSocket() {
   socket.on('ticket:deleted', () => {
     refreshAfterChange();
   });
+
+  socket.on('km:created', () => {
+    refreshAfterChange();
+  });
 }
 
 function disconnectSocket() {
@@ -36,6 +40,7 @@ function refreshAfterChange() {
     if (active && active.id === 'tab-dashboard') loadDashboard();
     if (active && active.id === 'tab-list') loadTickets();
     if (active && active.id === 'tab-asset') loadAssets();
+    if (active && active.id === 'tab-km') loadKMs();
   }, 500);
 }
 

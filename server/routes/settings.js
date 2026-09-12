@@ -1,13 +1,13 @@
 const express = require('express');
 const { getSetting, setSetting } = require('../database');
 const { authMiddleware, adminOnly } = require('../middleware/auth');
+const { safeJsonParse } = require('../services/utils');
 
 const router = express.Router();
 
 // GET /api/settings (admin only) — ค่าแสดง: env ก่อน (ค้างถาวร), แล้ว DB
 router.get('/', authMiddleware, adminOnly, (req, res) => {
-  let refCost = {};
-  try { refCost = JSON.parse(getSetting('REF_COST_PRICE') || '{}'); } catch {}
+  const refCost = safeJsonParse(getSetting('REF_COST_PRICE') || '{}', {});
   const tgToken = process.env.TELEGRAM_BOT_TOKEN || getSetting('TELEGRAM_BOT_TOKEN') || '';
   const tgChat = process.env.TELEGRAM_GROUP_CHAT_ID || getSetting('TELEGRAM_GROUP_CHAT_ID') || '';
   res.json({

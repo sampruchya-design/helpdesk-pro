@@ -1,29 +1,10 @@
 const express = require('express');
-const multer = require('multer');
-const path = require('path');
 const { authMiddleware } = require('../middleware/auth');
+const { createUpload } = require('../services/upload');
 
 const router = express.Router();
 
-const storage = multer.diskStorage({
-  destination: path.join(__dirname, '..', 'uploads'),
-  filename: (req, file, cb) => {
-    const ext = path.extname(file.originalname);
-    cb(null, `ticket_${Date.now()}${ext}`);
-  }
-});
-
-const upload = multer({
-  storage,
-  limits: { fileSize: 25 * 1024 * 1024, files: 5 }, // 25MB/ไฟล์, สูงสุด 5 ไฟล์ (รองรับ KM/PDF)
-  fileFilter: (req, file, cb) => {
-    const allowed = /jpeg|jpg|png|gif|webp|pdf/;
-    const extOk = allowed.test(path.extname(file.originalname).toLowerCase());
-    const mimeOk = allowed.test(file.mimetype);
-    if (extOk && mimeOk) cb(null, true);
-    else cb(new Error('อนุญาตเฉพาะไฟล์รูปภาพ (jpg, png, gif, webp) หรือ PDF'));
-  }
-});
+const upload = createUpload({ prefix: 'ticket', maxFiles: 5 });
 
 // POST /api/upload — รองรับหลายรูป (สูงสุด 5), field name = 'photos'
 router.post('/', authMiddleware, upload.array('photos', 5), (req, res) => {

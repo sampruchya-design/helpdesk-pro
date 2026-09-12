@@ -5,8 +5,9 @@
 //         + ระบบเติมข้อมูลให้สมบูรณ์ (สถานที่/อุปกรณ์/ผู้ซ่อม/รูป/หมวดหมู่อัจฉริยะ)
 //         + กันซ้ำ (1 ticket → 1 KM ถ้า source = auto-ticket)
 // ==========================================
-const { getOne, getAll, runQuery } = require('../database');
-const { autoCategory } = require('./km-categorize');
+const { getOne, getAll } = require('../database');
+const { insertKM } = require('./km-store');
+const { safeJsonParse } = require('./utils');
 
 // notes ต้องมีสาระพอที่จะเป็นแนวทางซ่อมได้ (ไม่งั้นข้าม ไม่ทำ KM ก้อนเปล่า)
 function hasRealGuideline(notes) {
@@ -46,13 +47,11 @@ function createKMFromTicket(ticket) {
     if (!hasRealGuideline(guideline)) return { created: false, reason: 'no-guideline' };
 
     const images = [];
-    let done = [];
-    try { done = JSON.parse(ticket.photos_done || '[]'); } catch (e) {}
-    done = Array.isArray(done) ? done.filter(Boolean).slice(0, 10) : [];
-    const reported = [];
-    try { reported = JSON.parse(ticket.photos || '[]'); } catch (e) {}
+    const done = safeJsonParse(ticket.photos_done || '[]', []);
+    const reported = safeJsonParse(ticket.photos || '[]', []);
     // ใช้รูปตอนเสร็จก่อน ถ้าไม่มี เอาภาพตอนนี้ไปก่อน (ให้ KM มีภาพประกอบเสมอ)
-    if (done.length) images.push(...done);
+    const doneList = Array.isArray(done) ? done.filter(Boolean).slice(0, 10) : [];
+    if (doneList.length) images.push(...doneList);
     else if (Array.isArray(reported)) images.push(...reported.filter(Boolean).slice(0, 10));
 
     const title = (ticket.title || '').trim();
@@ -78,38 +77,22 @@ function createKMFromTicket(ticket) {
       const known = getAll('SELECT name FROM categories').map(r => r.name);
       if (known.includes((ticket.category || '').trim())) seedCategory = ticket.category;
     } catch (e) {}
-    const finalCategory = autoCategory({
+
+    const r = insertKM({
+      source: 'auto-ticket',
+      title,
       category: seedCategory,
       symptom: title,
       location: loc,
-      operator: ticket.technician || '',
-      supervisor: ticket.reporter_name || '',
-      title,
-      content,
-      tech_info: techInfo,
-      steps
+      operator: (ticket.technician || '').trim(),
+      supervisor: (ticket.reporter_name || '').trim(),
+      content, tech_info: techInfo, steps,
+      images,
+      ticket_no: (ticket.ticket_no || '').trim(),
+      created_by: (ticket.technician || ticket.tech_by || 'ระบบ').trim()
     });
 
-    const r = runQuery(
-      `INSERT INTO kms (title, category, symptom, location, operator, supervisor, content, tech_info, steps, images, file_url, file_type, source, ticket_no, created_by)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, '', '', 'auto-ticket', ?, ?)`,
-      [
-        title,
-        finalCategory,
-        title,
-        loc,
-        (ticket.technician || '').trim(),
-        (ticket.reporter_name || '').trim(),
-        content,
-        techInfo,
-        steps,
-        JSON.stringify(images),
-        (ticket.ticket_no || '').trim(),
-        (ticket.technician || ticket.tech_by || 'ระบบ').trim()
-      ]
-    );
-
-    return { created: true, id: r.lastInsertRowid, category: finalCategory };
+    return { created: true, id: r.id, category: r.category };
   } catch (e) {
     console.error('[KM-Auto] สร้างจากงานแจ้งซ่อมไม่สำเร็จ:', e.message);
     return { created: false, reason: e.message };

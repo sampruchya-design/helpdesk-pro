@@ -161,29 +161,7 @@ function openUpdateModal(id) {
 let uPhotoPreviews = [], uPhotoDonePreviews = [];
 
 function buildPhotoPreviews(fileList, box, store) {
-  const files = Array.from(fileList || []).slice(0, 5);
-  box.innerHTML = '';
-  store.length = 0;
-  if (!files.length) { box.style.display = 'none'; return; }
-  files.forEach((file, i) => {
-    const rd = new FileReader();
-    rd.onload = e => {
-      const wrap = document.createElement('div');
-      wrap.style.cssText = 'position:relative;';
-      const img = document.createElement('img');
-      img.src = e.target.result;
-      img.style.cssText = 'max-width:100px;max-height:100px;object-fit:cover;border-radius:8px;border:1px solid rgba(255,255,255,0.15);';
-      const rm = document.createElement('button');
-      rm.type = 'button'; rm.textContent = '✕'; rm.title = 'เอารูปออก';
-      rm.style.cssText = 'position:absolute;top:-6px;right:-6px;width:22px;height:22px;border-radius:50%;background:#11161f;border:1px solid rgba(255,255,255,0.25);color:#fff;font-size:11px;cursor:pointer;line-height:1;';
-      rm.onclick = () => rebuildPhotos(box, store, i);
-      wrap.appendChild(img); wrap.appendChild(rm);
-      box.appendChild(wrap);
-    };
-    rd.readAsDataURL(file);
-    store.push({ file });
-  });
-  box.style.display = 'flex';
+  return buildPhotoPreviewBox(fileList, box, store, { maxSize: 100, onRemove: idx => rebuildPhotos(box, store, idx) });
 }
 
 function rebuildPhotos(box, store, idx) {

@@ -1,13 +1,16 @@
 const express = require('express');
-const { getDB, getAll, getOne, runQuery, generateTicketNo } = require('../database');
+const path = require('path');
+const fs = require('fs');
+const { getAll, getOne, runQuery, generateTicketNo } = require('../database');
 const { authMiddleware, adminOnly } = require('../middleware/auth');
+const { safeJsonParse, sanitizePagination } = require('../services/utils');
 
 const router = express.Router();
 
 // Normalize photos columns → array (รูปตอนแจ้ง = photos, รูปตอนเสร็จ = photos_done)
 function parseCol(v) {
-  if (!v) return [];
-  try { const a = JSON.parse(v); return Array.isArray(a) ? a : []; } catch (e) { return []; }
+  const a = safeJsonParse(v, []);
+  return Array.isArray(a) ? a : [];
 }
 function normPhotos(t) {
   if (!t) return t;
@@ -22,8 +25,8 @@ function normPhotos(t) {
 
 // GET /api/tickets — list all (with filters)
 router.get('/', authMiddleware, (req, res) => {
-  const { status, search, page = 1, limit = 50 } = req.query;
-  const offset = (Number(page) - 1) * Number(limit);
+  const { status, search } = req.query;
+  const { page, limit, offset } = sanitizePagination(req.query, 1, 50);
 
   let where = [];
   let params = [];
@@ -42,10 +45,10 @@ router.get('/', authMiddleware, (req, res) => {
   const total = getOne(`SELECT COUNT(*) as c FROM tickets ${whereClause}`, params);
   const tickets = getAll(
     `SELECT * FROM tickets ${whereClause} ORDER BY created_at DESC LIMIT ? OFFSET ?`,
-    [...params, Number(limit), offset]
+    [...params, limit, offset]
   ).map(normPhotos);
 
-  res.json({ status: 'success', tickets, total: total.c, page: Number(page), limit: Number(limit) });
+  res.json({ status: 'success', tickets, total: total.c, page, limit });
 });
 
 // GET /api/tickets/:id
@@ -153,27 +156,31 @@ router.put('/:id', authMiddleware, (req, res) => {
 
   updates.push("updated_at = datetime('now','localtime')");
 
-  if (updates.length > 1) {
-    params.push(Number(req.params.id));
-    runQuery(`UPDATE tickets SET ${updates.join(', ')} WHERE id = ?`, params);
+  // BUG-8: ไม่มีอะไรเปลี่ยนจริง → ไม่เขียน DB / ไม่ emit / ไม่ notify
+  if (updates.length === 1) {
+    const current = normPhotos(getOne('SELECT * FROM tickets WHERE id = ?', [Number(req.params.id)]));
+    return res.json({ status: 'success', ticket: current, changed: false, message: 'ไม่มีข้อมูลที่เปลี่ยนแปลง' });
   }
+
+  params.push(Number(req.params.id));
+  runQuery(`UPDATE tickets SET ${updates.join(', ')} WHERE id = ?`, params);
 
   const updated = normPhotos(getOne('SELECT * FROM tickets WHERE id = ?', [Number(req.params.id)]));
   const io = req.app.get('io');
   if (io) io.emit('ticket:updated', updated);
 
-  if (statusChanged) require('../services/notification').notifyStatusUpdate(updated, ticket.status);
+  if (statusChanged) require('../services/notification').notifyStatusUpdate(updated, ticket.status).catch(() => {});
 
   // KM อัตโนมัติ: ปิดงานเป็น "เสร็จสิ้น" → สร้างเอกสาร KM จากงานนี้ (เฉพาะที่มีแนวทางซ่อมจริง, non-blocking)
   if (statusChanged && status === 'เสร็จสิ้น') {
     const { createKMFromTicket } = require('../services/km-from-ticket');
     setTimeout(() => {
-      const res = createKMFromTicket(updated);
-      if (res.created) {
-        console.log(`[KM-Auto] สร้าง KM จากงาน #${updated.ticket_no} สำเร็จ (id=${res.id}, หมวด=${res.category})`);
-        if (io) io.emit('km:created', { id: res.id });
-      } else if (res.reason !== 'no-guideline' && res.reason !== 'not-completed' && res.reason !== 'duplicate') {
-        console.log(`[KM-Auto] ข้ามสร้าง KM จากงาน #${updated.ticket_no}: ${res.reason}`);
+      const kmResult = createKMFromTicket(updated);
+      if (kmResult.created) {
+        console.log(`[KM-Auto] สร้าง KM จากงาน #${updated.ticket_no} สำเร็จ (id=${kmResult.id}, หมวด=${kmResult.category})`);
+        if (io) io.emit('km:created', { id: kmResult.id });
+      } else if (kmResult.reason !== 'no-guideline' && kmResult.reason !== 'not-completed' && kmResult.reason !== 'duplicate') {
+        console.log(`[KM-Auto] ข้ามสร้าง KM จากงาน #${updated.ticket_no}: ${kmResult.reason}`);
       }
     }, 300);
   }
@@ -185,6 +192,15 @@ router.put('/:id', authMiddleware, (req, res) => {
 router.delete('/:id', authMiddleware, adminOnly, (req, res) => {
   const ticket = getOne('SELECT * FROM tickets WHERE id = ?', [Number(req.params.id)]);
   if (!ticket) return res.status(404).json({ status: 'error', message: 'ไม่พบงาน' });
+
+  // ลบไฟล์รูปบน disk (photos + photos_done) กันขยะสะสมใน uploads
+  const files = [...parseCol(ticket.photos), ...parseCol(ticket.photos_done)]
+    .filter(f => typeof f === 'string' && f.startsWith('/uploads/'))
+    .map(f => path.basename(f));
+  files.forEach(name => {
+    const fp = path.join(__dirname, '..', 'uploads', name);
+    try { if (fs.existsSync(fp)) fs.unlinkSync(fp); } catch (e) {}
+  });
 
   runQuery('DELETE FROM sla_log WHERE ticket_id = ?', [Number(req.params.id)]);
   runQuery('DELETE FROM tickets WHERE id = ?', [Number(req.params.id)]);

@@ -160,17 +160,11 @@ async function saveKM() {
     const imgs = document.getElementById('km_images').files;
     Array.from(imgs).slice(0, 10).forEach(f => formData.append('files', f));
 
-    const res = await fetch('/api/kms', {
-      method: 'POST',
-      headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` },
-      body: formData
-    });
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.message || 'บันทึกไม่สำเร็จ');
+    const res = await API.upload('/api/kms', formData);
 
     closeKMModal();
     await loadKMs();
-    showModal('บันทึกสำเร็จ!', data.message || 'เอกสาร KM ถูกบันทึกแล้ว');
+    showModal('บันทึกสำเร็จ!', res.message || 'เอกสาร KM ถูกบันทึกแล้ว');
   } catch (err) {
     showModal('เกิดข้อผิดพลาด', err.message);
   } finally {
@@ -214,22 +208,11 @@ async function exportAiAsPDF() {
     return;
   }
   try {
-    const res = await fetch('/api/kms/export-pdf', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${localStorage.getItem('token')}` },
-      body: JSON.stringify({
-        title: 'ผลวิเคราะห์ ' + new Date().toLocaleDateString('th-TH'),
-        category: 'ผลวิเคราะห์/AI',
-        content: txt.split('•').map(s => s.trim()).filter(Boolean).join('\n')
-      })
+    await API.download('/api/kms/export-pdf', `KM_ผลวิเคราะห์_${new Date().toISOString().slice(0, 10)}.pdf`, {
+      title: 'ผลวิเคราะห์ ' + new Date().toLocaleDateString('th-TH'),
+      category: 'ผลวิเคราะห์/AI',
+      content: txt.split('•').map(s => s.trim()).filter(Boolean).join('\n')
     });
-    if (!res.ok) { const d = await res.json(); throw new Error(d.message); }
-    const blob = await res.blob();
-    const a = document.createElement('a');
-    a.href = URL.createObjectURL(blob);
-    a.download = `KM_ผลวิเคราะห์_${new Date().toISOString().slice(0,10)}.pdf`;
-    a.click();
-    URL.revokeObjectURL(a.href);
   } catch (err) {
     showModal('Export PDF ไม่สำเร็จ', err.message);
   }

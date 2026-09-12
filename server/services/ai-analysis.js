@@ -3,9 +3,12 @@
 //  สรุป insight เป็นภาษาไทยสำหรับหน้าแอดมิน + รายงานอัตโนมัติ
 // ==========================================
 const { getAll, getOne, getSetting } = require('../database');
+const { safeJsonParse } = require('./utils');
+const { slaAvgHours, overdueCount } = require('./stats');
 
 function getRefPrices() {
-  try { return JSON.parse(getSetting('REF_COST_PRICE') || '{}'); } catch { return {}; }
+  const p = safeJsonParse(getSetting('REF_COST_PRICE') || '{}', {});
+  return typeof p === 'object' && p !== null ? p : {};
 }
 
 // เปรียบเทียบ "เราทำเอง" vs "จ้างภายนอก" ต่อหมวด โดยใช้ราคาอ้างอิงที่แอดมินตั้งไว้
@@ -111,26 +114,17 @@ function analyzeInsights() {
   }
 
   // 4. งานค้างเกิน 3 วัน
-  const overdue = getOne(`
-    SELECT COUNT(*) as c FROM tickets
-    WHERE status IN ('รอดำเนินการ', 'กำลังซ่อม', 'รออะไหล่', 'ส่งซ่อมภายนอก')
-    AND julianday('now','localtime') - julianday(created_at) > 3
-  `);
-  if (overdue.c > 0) {
-    insights.push(`มีงานค้างเกิน 3 วัน ${overdue.c} รายการ — ควรรีบจัดลำดับดำเนินการ`);
+  const overdue = overdueCount();
+  if (overdue > 0) {
+    insights.push(`มีงานค้างเกิน 3 วัน ${overdue} รายการ — ควรรีบจัดลำดับดำเนินการ`);
   } else {
     insights.push(`ไม่มีงานค้างเกิน 3 วัน — สถานะงานอยู่ในเกณฑ์ดี`);
   }
 
   // 5. เวลาเฉลี่ยเริ่มซ่อม (SLA)
-  const sla = getOne(`
-    SELECT AVG((julianday(s2.changed_at) - julianday(s1.changed_at)) * 24) as avg_hours
-    FROM sla_log s1
-    JOIN sla_log s2 ON s1.ticket_id = s2.ticket_id
-    WHERE s1.to_status = 'รอดำเนินการ' AND s2.to_status IN ('กำลังซ่อม', 'เสร็จสิ้น')
-  `);
-  if (sla.avg_hours) {
-    const h = Math.round(sla.avg_hours * 10) / 10;
+  const sla = slaAvgHours();
+  if (sla) {
+    const h = Math.round(sla * 10) / 10;
     insights.push(`เวลาเฉลี่ยจากรับงานถึงเริ่มซ่อม/เสร็จ ≈ ${h} ชั่วโมง`);
   }
 

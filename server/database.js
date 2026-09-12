@@ -25,7 +25,6 @@ async function getDB() {
     db = new SQL.Database();
   }
 
-  db.run('PRAGMA journal_mode = WAL');
   db.run('PRAGMA foreign_keys = ON');
   initSchema();
   saveDB();
@@ -272,8 +271,12 @@ function generateTicketNo() {
   const d = String(now.getDate()).padStart(2, '0');
   const date = `${y}${m}${d}`;
 
-  const row = getOne("SELECT COUNT(*) as c FROM tickets WHERE ticket_no LIKE ?", [`RQ-${date}-%`]);
-  const seq = String((row.c || 0) + 1).padStart(3, '0');
+  // ใช้ MAX(ลำดับ) ไม่ใช่ COUNT กันเลขซ้ำเมื่อลบ ticket ไปแล้ว
+  const row = getOne(
+    "SELECT MAX(CAST(SUBSTR(ticket_no, -3) AS INTEGER)) as m FROM tickets WHERE ticket_no LIKE ?",
+    [`RQ-${date}-%`]
+  );
+  const seq = String((row.m || 0) + 1).padStart(3, '0');
   return `RQ-${date}-${seq}`;
 }
 

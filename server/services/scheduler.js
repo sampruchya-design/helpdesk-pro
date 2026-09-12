@@ -4,6 +4,7 @@ const path = require('path');
 const { getAll, getOne } = require('../database');
 const { sendDailyReport, sendWeeklyReport, sendTelegramBackup } = require('./notification');
 const { analyzeInsights } = require('./ai-analysis');
+const { overdueCount } = require('./stats');
 
 const DB_PATH = path.join(__dirname, '..', 'data', 'database.db');
 
@@ -27,13 +28,13 @@ function startScheduler(saveDB) {
   // Daily report — ทุกวัน 09:00
   cron.schedule('0 9 * * *', () => {
     console.log('[Scheduler] ส่ง Daily Report...');
-    generateDailyReport();
+    generateDailyReport().catch(e => console.error('[Scheduler] Daily Report ผิดพลาด:', e.message));
   }, { timezone: 'Asia/Bangkok' });
 
   // Weekly report — ทุกวันศุกร์ 16:00
   cron.schedule('0 16 * * 5', () => {
     console.log('[Scheduler] ส่ง Weekly Report...');
-    generateWeeklyReport();
+    generateWeeklyReport().catch(e => console.error('[Scheduler] Weekly Report ผิดพลาด:', e.message));
   }, { timezone: 'Asia/Bangkok' });
 
   console.log('[Scheduler] เริ่มต้นแล้ว — สำรองทุก 6 ชม., Daily 09:00, Weekly Fri 16:00');
@@ -84,11 +85,7 @@ function generateWeeklyReport() {
     GROUP BY technician ORDER BY c DESC LIMIT 1
   `, [startStr, endStr]);
 
-  const overdue = getOne(`
-    SELECT COUNT(*) as c FROM tickets
-    WHERE status IN ('รอดำเนินการ', 'กำลังซ่อม', 'รออะไหล่', 'ส่งซ่อมภายนอก')
-    AND julianday('now','localtime') - julianday(created_at) > 3
-  `);
+  const overdue = overdueCount();
 
   return sendWeeklyReport({
     weekNew: weekNew.c,
@@ -99,7 +96,7 @@ function generateWeeklyReport() {
     weekCost: weekCost.c,
     topTech: topTechRow?.technician || null,
     topTechCount: topTechRow?.c || 0,
-    overdue: overdue.c,
+    overdue: overdue,
     insights: analyzeInsights().slice(0, 4)
   });
 }
