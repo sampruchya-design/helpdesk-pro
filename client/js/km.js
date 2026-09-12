@@ -3,6 +3,7 @@
 //  รายการ / อัปโหลด / ลบ / Export PDF / บันทึกผลวิเคราะห์เป็น KM
 // ==========================================
 let kmData = [];
+let kmCategories = [];
 
 async function loadKMs() {
   const grid = document.getElementById('km-grid');
@@ -10,20 +11,55 @@ async function loadKMs() {
   try {
     const res = await API.get('/api/kms');
     kmData = res.kms || [];
+    // เก็บหมวดหมู่ทั้งหมดจากผลลัพธ์ (ทุกหน้า) + ดึงจาก categories endpoint
+    kmCategories = [...new Set(kmData.map(k => (k.category || '').trim()).filter(Boolean))];
+    try {
+      const c = await API.get('/api/kms/categories');
+      if (c.categories && c.categories.length) kmCategories = c.categories;
+    } catch (e) {}
+    fillKMCategoryFilter();
     renderKMs();
   } catch (err) {
     grid.innerHTML = `<p style="grid-column:1/-1;text-align:center;color:#f87171;">❌ ${err.message}</p>`;
   }
 }
 
+function fillKMCategoryFilter() {
+  const sel = document.getElementById('km_category_filter');
+  if (!sel) return;
+  const cur = sel.value;
+  sel.innerHTML = '<option value="">📂 ทุกหมวดหมู่</option>' +
+    kmCategories.map(c => `<option value="${escapeHtml(c)}">${escapeHtml(c)}</option>`).join('');
+  if (kmCategories.includes(cur)) sel.value = cur;
+}
+
+function applyKMFilters() {
+  const q = (document.getElementById('km_search')?.value || '').trim().toLowerCase();
+  const cat = document.getElementById('km_category_filter')?.value || '';
+  const list = kmData.filter(km => {
+    const okCat = !cat || (km.category || '').trim().toLowerCase() === cat.toLowerCase();
+    const okQ = !q || [km.title, km.symptom, km.content, km.location, km.operator, km.ticket_no, km.category]
+      .some(v => String(v || '').toLowerCase().includes(q));
+    return okCat && okQ;
+  });
+  const cnt = document.getElementById('km_result_count');
+  if (cnt) cnt.textContent = list.length ? `พบ ${list.length} เอกสาร` : '';
+  renderKMGrid(list);
+}
+
 function renderKMs() {
+  fillKMCategoryFilter();
+  applyKMFilters();
+}
+
+function renderKMGrid(rows) {
   const grid = document.getElementById('km-grid');
-  if (!kmData.length) {
+  if (!rows.length) {
     grid.innerHTML = '<p style="grid-column:1/-1;text-align:center;color:var(--text-muted);font-size:13px;">📭 ยังไม่มีเอกสาร KM — กดปุ่ม "เพิ่มเอกสาร KM" เพื่อสร้างใหม่</p>';
     return;
   }
   const isAdmin = currentUser && currentUser.role === 'admin';
-  grid.innerHTML = kmData.map(km => {
+  grid.innerHTML = rows.map(km => {
     const isAnalysis = km.source === 'analysis';
     const badge = isAnalysis
       ? '<span style="background:rgba(0,212,255,0.1);color:var(--accent);border:1px solid rgba(0,212,255,0.2);padding:2px 8px;border-radius:999px;font-size:10px;">🤖 ผลวิเคราะห์</span>'
@@ -34,6 +70,9 @@ function renderKMs() {
         : `<div style="width:100%;height:140px;background:linear-gradient(135deg,#0b1220 0%,#1e293b 100%);display:flex;align-items:center;justify-content:center;border-radius:8px 8px 0 0;font-size:40px;">📄</div>`)
       : `<div style="width:100%;height:140px;background:linear-gradient(135deg,#0b1220 0%,#1e293b 100%);display:flex;align-items:center;justify-content:center;border-radius:8px 8px 0 0;"><span style="font-size:40px;">📚</span></div>`;
     const created = String(km.created_at || '').split(' ')[0] || '-';
+    const sym = km.symptom && String(km.symptom).trim()
+      ? `<div style="margin:6px 0 10px;font-size:12px;color:#fbbf24;line-height:1.4;"><span style="opacity:0.8;">🩺</span> ${escapeHtml(km.symptom)}</div>`
+      : '';
     return `
     <div style="background:var(--card-bg);border:1px solid var(--border);border-radius:12px;overflow:hidden;display:flex;flex-direction:column;transition:transform 0.2s;" onmouseenter="this.style.transform='translateY(-2px)'" onmouseleave="this.style.transform='none'">
       ${cover}
@@ -43,7 +82,8 @@ function renderKMs() {
           <span style="background:rgba(255,255,255,0.04);color:var(--text-muted);padding:2px 8px;border-radius:999px;font-size:10px;">${escapeHtml(km.category || 'อื่นๆ')}</span>
           ${km.ticket_no ? `<span style="color:var(--accent);font-size:10px;">📋 ${escapeHtml(km.ticket_no)}</span>` : ''}
         </div>
-        <h4 style="margin:0 0 6px;font-size:14px;font-weight:700;color:#e2eaf7;line-height:1.3;">${escapeHtml(km.title)}</h4>
+        <h4 style="margin:0 0 2px;font-size:14px;font-weight:700;color:#e2eaf7;line-height:1.3;">${escapeHtml(km.title)}</h4>
+        ${sym}
         <div style="font-size:11px;color:var(--text-muted);line-height:1.5;">
           ${km.location ? `📍 ${escapeHtml(km.location)} · ` : ''}${km.operator ? `👤 ${escapeHtml(km.operator)}` : ''}${km.created_by ? `<br>บันทึกโดย ${escapeHtml(km.created_by)}` : ''}
         </div>
@@ -59,7 +99,7 @@ function renderKMs() {
 }
 
 function openKMForm() {
-  ['km_title','km_ticket_no','km_location','km_operator','km_supervisor','km_content','km_tech','km_steps'].forEach(id => {
+  ['km_title','km_ticket_no','km_category','km_symptom','km_location','km_operator','km_supervisor','km_content','km_tech','km_steps'].forEach(id => {
     const el = document.getElementById(id);
     if (el) el.value = '';
   });
@@ -104,6 +144,7 @@ async function saveKM() {
     const formData = new FormData();
     formData.append('title', document.getElementById('km_title').value);
     formData.append('category', document.getElementById('km_category').value || 'อื่นๆ');
+    formData.append('symptom', document.getElementById('km_symptom').value);
     formData.append('ticket_no', document.getElementById('km_ticket_no').value);
     formData.append('location', document.getElementById('km_location').value);
     formData.append('operator', document.getElementById('km_operator').value);
@@ -153,10 +194,12 @@ async function saveAiAsKM() {
   const title = prompt('หัวข้อเอกสาร KM:', 'ผลวิเคราะห์ประจำเดือน ' + new Date().toLocaleDateString('th-TH', { month: 'long', year: 'numeric' }));
   if (!title) return;
   const category = prompt('หมวดหมู่:', 'ผลวิเคราะห์/AI');
+  const symptom = prompt('อาการเสีย (เช่น หมวดเครื่องปรับอากาศแจ้งซ่อมถี่):', '');
   try {
     const res = await API.post('/api/kms/from-analysis', {
       title,
       category: category || 'ผลวิเคราะห์/AI',
+      symptom: symptom || '',
       content: txt.replace(/\n/g, '\n').split('•').map(s => s.trim()).filter(Boolean).join('\n'),
       created_by: currentUser?.name || 'AI'
     });

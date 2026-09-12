@@ -32,10 +32,18 @@ const uploadKM = multer({
   }
 });
 
-// GET /api/kms — รายการ KM ทั้งหมด
+// GET /api/kms — รายการ KM ทั้งหมด (รองรับ filter: ?category= , ?q= ค้นหาอาการเสีย/หัวข้อ/เนื้อหา)
 router.get('/', authMiddleware, (req, res) => {
   try {
-    const rows = getAll('SELECT * FROM kms ORDER BY created_at DESC').map(km => {
+    let rows = getAll('SELECT * FROM kms ORDER BY created_at DESC');
+    const cat = (req.query.category || '').trim();
+    const q = (req.query.q || '').trim().toLowerCase();
+    if (cat) rows = rows.filter(k => (k.category || '').trim().toLowerCase() === cat.toLowerCase());
+    if (q) rows = rows.filter(k =>
+      [k.title, k.symptom, k.content, k.location, k.operator, k.ticket_no, k.category]
+        .some(v => String(v || '').toLowerCase().includes(q))
+    );
+    const mapped = rows.map(km => {
       let imgs = [];
       try { imgs = JSON.parse(km.images || '[]'); } catch (e) {}
       return {
@@ -44,7 +52,20 @@ router.get('/', authMiddleware, (req, res) => {
         file_url: km.file_url || ''
       };
     });
-    res.json({ status: 'success', kms: rows });
+    res.json({ status: 'success', kms: mapped, total: mapped.length });
+  } catch (e) {
+    res.status(500).json({ status: 'error', message: e.message });
+  }
+});
+
+// GET /api/kms/categories — หมวดหมู่ทั้งหมด (จากตาราง categories + ที่มีใน KM)
+router.get('/categories', authMiddleware, (req, res) => {
+  try {
+    const cats = getAll('SELECT name FROM categories ORDER BY name');
+    const kmCats = getAll('SELECT DISTINCT category FROM kms WHERE category <> \'\'')
+      .map(r => r.category).filter(Boolean);
+    const all = [...new Set([...cats.map(c => c.name), ...kmCats])].sort((a, b) => a.localeCompare(b, 'th'));
+    res.json({ status: 'success', categories: all });
   } catch (e) {
     res.status(500).json({ status: 'error', message: e.message });
   }
@@ -53,7 +74,7 @@ router.get('/', authMiddleware, (req, res) => {
 // POST /api/kms — อัปโหลด KM เอกสาร (file + ข้อมูล)
 router.post('/', authMiddleware, adminOnly, uploadKM.array('files', 5), (req, res) => {
   try {
-    const { title, category, location, operator, supervisor, content, tech_info, steps, images, ticket_no } = req.body;
+    const { title, category, symptom, location, operator, supervisor, content, tech_info, steps, images, ticket_no } = req.body;
     if (!title || !title.trim()) return res.status(400).json({ status: 'error', message: 'กรุณากรอกหัวข้อเอกสาร KM' });
 
     // file หลัก: field 'file' เดียว หรือ file รายการใน 'files'
@@ -76,9 +97,9 @@ router.post('/', authMiddleware, adminOnly, uploadKM.array('files', 5), (req, re
     imgList = imgList.filter(Boolean).slice(0, 10);
 
     const r = runQuery(
-      `INSERT INTO kms (title, category, location, operator, supervisor, content, tech_info, steps, images, file_url, file_type, source, ticket_no, created_by)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'upload', ?, ?)`,
-      [title.trim(), (category || 'อื่นๆ').trim(), (location || '').trim(), (operator || '').trim(),
+      `INSERT INTO kms (title, category, symptom, location, operator, supervisor, content, tech_info, steps, images, file_url, file_type, source, ticket_no, created_by)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'upload', ?, ?)`,
+      [title.trim(), (category || 'อื่นๆ').trim(), (symptom || '').trim(), (location || '').trim(), (operator || '').trim(),
        (supervisor || '').trim(), (content || '').trim(), (tech_info || '').trim(), (steps || '').trim(),
        JSON.stringify(imgList), file_url, file_type, (ticket_no || '').trim(),
        (req.user.name || '')]
@@ -93,13 +114,13 @@ router.post('/', authMiddleware, adminOnly, uploadKM.array('files', 5), (req, re
 // POST /api/kms/from-analysis — บันทึกผลวิเคราะห์ AI เป็น KM (ไม่มีไฟล์แนบ)
 router.post('/from-analysis', authMiddleware, adminOnly, (req, res) => {
   try {
-    const { title, category, location, operator, supervisor, content } = req.body;
+    const { title, category, symptom, location, operator, supervisor, content } = req.body;
     if (!title || !title.trim()) return res.status(400).json({ status: 'error', message: 'กรุณากรอกหัวข้อเอกสาร KM' });
 
     const r = runQuery(
-      `INSERT INTO kms (title, category, location, operator, supervisor, content, tech_info, steps, images, file_url, file_type, source, ticket_no, created_by)
-       VALUES (?, ?, ?, ?, ?, ?, '', '', '[]', '', '', 'analysis', '', ?)`,
-      [title.trim(), (category || 'อื่นๆ').trim(), (location || '').trim(), (operator || '').trim(),
+      `INSERT INTO kms (title, category, symptom, location, operator, supervisor, content, tech_info, steps, images, file_url, file_type, source, ticket_no, created_by)
+       VALUES (?, ?, ?, ?, ?, ?, ?, '', '', '[]', '', '', 'analysis', '', ?)`,
+      [title.trim(), (category || 'อื่นๆ').trim(), (symptom || '').trim(), (location || '').trim(), (operator || '').trim(),
        (supervisor || '').trim(), (content || '').trim(), (req.user.name || '')]
     );
     res.json({ status: 'success', id: r.lastInsertRowid, message: 'บันทึกผลวิเคราะห์เป็น KM แล้ว' });
@@ -134,6 +155,7 @@ router.post('/export-pdf', authMiddleware, async (req, res) => {
     const km = {
       title: req.body.title || 'งานซ่อม',
       category: req.body.category || 'อื่นๆ',
+      symptom: req.body.symptom || '',
       location: req.body.location || '',
       operator: req.body.operator || '',
       supervisor: req.body.supervisor || '',

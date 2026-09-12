@@ -276,6 +276,17 @@
             <button onclick="openKMForm()" class="btn-add btn-cyan">➕ เพิ่มเอกสาร KM</button>
           </div>
         </div>
+        <div style="display:flex;flex-wrap:wrap;gap:10px;margin-top:18px;align-items:center;">
+          <div style="flex:1;min-width:220px;position:relative;">
+            <input type="text" id="km_search" class="inp" placeholder="🔍 ค้นหา (อาการเสีย / หัวข้อ / สถานที่ / ผู้ปฏิบัติงาน / เลขงาน)..."
+              oninput="applyKMFilters()" style="padding-left:36px;">
+            <span style="position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--text-muted);font-size:13px;">🔍</span>
+          </div>
+          <select id="km_category_filter" class="inp" onchange="applyKMFilters()" style="min-width:180px;max-width:240px;">
+            <option value="">📂 ทุกหมวดหมู่</option>
+          </select>
+          <span id="km_result_count" style="font-size:11px;color:var(--text-muted);"></span>
+        </div>
         <div id="km-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:16px;margin-top:18px;"></div>
       </div>
 
@@ -294,10 +305,14 @@
             <div><label class="label">หมวดหมู่</label>
               <input type="text" id="km_category" class="inp" list="category-datalist" placeholder="เลือกหรือพิมพ์ใหม่">
             </div>
+            <div><label class="label">อาการเสีย</label>
+              <input type="text" id="km_symptom" class="inp" placeholder="เช่น ดับเอง ควัน/กลิ่น คอมเพรสเซอร์ไม่ทำงาน">
+            </div>
+          </div>
+          <div class="field-row">
             <div><label class="label">ผูกกับเลขที่งาน (ไม่บังคับ)</label>
               <input type="text" id="km_ticket_no" class="inp" placeholder="RQ-20260911-001">
             </div>
-          </div>
           <div class="field-row">
             <div><label class="label">สถานที่</label><input type="text" id="km_location" class="inp" placeholder="สถานี..."></div>
             <div><label class="label">เจ้าหน้าที่ผู้ปฏิบัติงาน</label><input type="text" id="km_operator" class="inp" list="technician-datalist" placeholder="ชื่อ"></div>

@@ -176,6 +176,9 @@ async function buildKMPDF(km) {
   };
 
   drawHeading(1, 'เหตุการณ์');
+  if (km.symptom && String(km.symptom).trim()) {
+    drawLines(`🩺 อาการเสีย: ${String(km.symptom).trim()}`);
+  }
   drawLines(km.content);
 
   drawHeading(2, 'ข้อมูลเทคนิคของอุปกรณ์');

@@ -145,13 +145,13 @@ function initSchema() {
       value TEXT
     )
   `);
-  db.run('CREATE TABLE IF NOT EXISTS kms (id INTEGER PRIMARY KEY AUTOINCREMENT, title TEXT NOT NULL, category TEXT DEFAULT \'อื่นๆ\', location TEXT DEFAULT \'\', operator TEXT DEFAULT \'\', supervisor TEXT DEFAULT \'\', content TEXT DEFAULT \'\', tech_info TEXT DEFAULT \'\', steps TEXT DEFAULT \'\', images TEXT DEFAULT \'[]\', file_url TEXT DEFAULT \'\', file_type TEXT DEFAULT \'\', source TEXT DEFAULT \'upload\', ticket_no TEXT DEFAULT \'\', created_by TEXT DEFAULT \'\', created_at DATETIME DEFAULT (datetime(\'now\',\'localtime\')), updated_at DATETIME DEFAULT (datetime(\'now\',\'localtime\')))');
+  db.run('CREATE TABLE IF NOT EXISTS kms (id INTEGER PRIMARY KEY AUTOINCREMENT, title TEXT NOT NULL, category TEXT DEFAULT \'อื่นๆ\', symptom TEXT DEFAULT \'\', location TEXT DEFAULT \'\', operator TEXT DEFAULT \'\', supervisor TEXT DEFAULT \'\', content TEXT DEFAULT \'\', tech_info TEXT DEFAULT \'\', steps TEXT DEFAULT \'\', images TEXT DEFAULT \'[]\', file_url TEXT DEFAULT \'\', file_type TEXT DEFAULT \'\', source TEXT DEFAULT \'upload\', ticket_no TEXT DEFAULT \'\', created_by TEXT DEFAULT \'\', created_at DATETIME DEFAULT (datetime(\'now\',\'localtime\')), updated_at DATETIME DEFAULT (datetime(\'now\',\'localtime\')))');
 
   // Indexes
   db.run('CREATE INDEX IF NOT EXISTS idx_tickets_status ON tickets(status)');
   db.run('CREATE INDEX IF NOT EXISTS idx_tickets_created ON tickets(created_at)');
   db.run('CREATE INDEX IF NOT EXISTS idx_sla_log_ticket ON sla_log(ticket_id)');
-
+  ensureKMSchema();
   ensureTicketSchema();
 
   markDirty();
@@ -196,6 +196,12 @@ function ensureTicketSchema() {
   if (!names.includes('labor_cost')) db.run('ALTER TABLE tickets ADD COLUMN labor_cost REAL DEFAULT 0');
   if (!names.includes('photos')) db.run("ALTER TABLE tickets ADD COLUMN photos TEXT DEFAULT '[]'");
   if (!names.includes('photos_done')) db.run("ALTER TABLE tickets ADD COLUMN photos_done TEXT DEFAULT '[]'");
+}
+
+function ensureKMSchema() {
+  const r = db.exec('PRAGMA table_info(kms)');
+  const names = r.length && r[0] ? r[0].values.map(v => v[1]) : [];
+  if (!names.includes('symptom')) db.run("ALTER TABLE kms ADD COLUMN symptom TEXT DEFAULT ''");
 }
 
 function seedDefaults() {
