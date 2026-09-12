@@ -52,6 +52,27 @@ const API = {
     URL.revokeObjectURL(a.href);
   },
 
+  // เปิด PDF ในแท็บใหม่แบบส่ง token (route /api/kms/:id/pdf กัน auth — window.open ตรงจะโดน 401)
+  async openPdf(url, filename) {
+    const res = await fetch(url, { method: 'GET', headers: authHeaders() });
+    if (!res.ok) {
+      const d = await res.json().catch(() => ({}));
+      throw new Error(d.message || `HTTP ${res.status}`);
+    }
+    const blob = await res.blob();
+    const blobUrl = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    if (filename) {
+      a.href = blobUrl;
+      a.download = filename;
+      a.click();
+      URL.revokeObjectURL(blobUrl);
+    } else {
+      window.open(blobUrl, '_blank');
+      setTimeout(() => URL.revokeObjectURL(blobUrl), 30000);
+    }
+  },
+
   get(url) { return this.request('GET', url); },
   post(url, body) { return this.request('POST', url, body); },
   put(url, body) { return this.request('PUT', url, body); },

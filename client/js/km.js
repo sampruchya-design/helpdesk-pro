@@ -115,14 +115,16 @@ function closeKMModal() { document.getElementById('kmModal').style.display = 'no
 function viewKM(id) {
   const km = kmData.find(x => x.id === id);
   if (!km) return;
-  const url = km.file_url && /\.pdf$/i.test(km.file_url)
-    ? km.file_url
-    : `/api/kms/${id}/pdf`;
-  window.open(url, '_blank');
+  const fileUrl = km.file_url && /\.pdf$/i.test(km.file_url) ? km.file_url : null;
+  if (fileUrl) {
+    window.open(fileUrl, '_blank');
+    return;
+  }
+  API.openPdf(`/api/kms/${id}/pdf`).catch(err => showModal('เปิด PDF ไม่สำเร็จ', err.message));
 }
 
 function exportKMPdf(id) {
-  window.open(`/api/kms/${id}/pdf`, '_blank');
+  API.openPdf(`/api/kms/${id}/pdf`, `KM_${id}.pdf`).catch(err => showModal('Export PDF ไม่สำเร็จ', err.message));
 }
 
 async function deleteKM(id) {
