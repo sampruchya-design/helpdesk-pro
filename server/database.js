@@ -82,11 +82,6 @@ function getOne(sql, params = []) {
   return row;
 }
 
-function getLastInsertId() {
-  const row = getOne('SELECT last_insert_rowid() as id');
-  return row ? row.id : null;
-}
-
 function initSchema() {
   ensureUserSchema();
   db.run(`
@@ -282,4 +277,4 @@ function generateTicketNo() {
   return `RQ-${date}-${seq}`;
 }
 
-module.exports = { getDB, runQuery, getAll, getOne, getLastInsertId, generateTicketNo, saveDB, getSetting, setSetting, hashPin };
+module.exports = { getDB, runQuery, getAll, getOne, generateTicketNo, saveDB, getSetting, setSetting, hashPin };

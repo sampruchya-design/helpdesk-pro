@@ -8,6 +8,9 @@ const path = require('path');
 const fs = require('fs');
 const { getDB, getAll, getOne, runQuery, saveDB, getSetting } = require('./database');
 const { authMiddleware, adminOnly } = require('./middleware/auth');
+const { assertJwtSecret } = require('./config');
+
+assertJwtSecret();
 
 const app = express();
 const server = http.createServer(app);
@@ -161,11 +164,32 @@ io.on('connection', (socket) => {
   });
 });
 
-// Catch-all
+// === MongoDB: API 404 (JSON) ===
+app.use('/api', (req, res) => {
+  res.status(404).json({ status: 'error', message: `ไม่พบ endpoint: ${req.method} ${req.originalUrl}` });
+});
+
+// Catch-all (หน้าเว็บ)
 app.get('*', (req, res) => {
   if (!req.path.startsWith('/api/')) {
     res.sendFile(path.join(__dirname, '..', 'client', 'index.html'));
   }
+});
+
+// === Multer / error middleware ===
+app.use((err, req, res, next) => {
+  if (res.headersSent) return next(err);
+  if (err && err.code === 'LIMIT_FILE_SIZE') {
+    return res.status(400).json({ status: 'error', message: 'ไฟล์ใหญ่เกินไป — จำกัด 25MB/ไฟล์' });
+  }
+  if (err && err.code === 'LIMIT_UNEXPECTED_FILE') {
+    return res.status(400).json({ status: 'error', message: 'อัปโหลดไฟล์เกินจำนวนที่กำหนด' });
+  }
+  if (err && err.message && (err.message.includes('อนุญาตเฉพาะไฟล์') || err.code === 'LIMIT_FILE_COUNT')) {
+    return res.status(400).json({ status: 'error', message: err.message || 'ไฟล์เกินจำนวนที่กำหนด' });
+  }
+  console.error('[Server] Error:', err && err.message ? err.message : err);
+  res.status(500).json({ status: 'error', message: 'เกิดข้อผิดพลาดภายในเซิร์ฟเวอร์' });
 });
 
 // Start

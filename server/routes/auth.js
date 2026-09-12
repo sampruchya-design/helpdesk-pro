@@ -2,9 +2,9 @@ const express = require('express');
 const jwt = require('jsonwebtoken');
 const { getOne, runQuery, getAll, hashPin } = require('../database');
 const { authMiddleware, adminOnly } = require('../middleware/auth');
+const { JWT_SECRET } = require('../config');
 
 const router = express.Router();
-const JWT_SECRET = process.env.JWT_SECRET || 'helpdesk-pro-secret';
 
 // POST /api/auth/login
 router.post('/login', (req, res) => {

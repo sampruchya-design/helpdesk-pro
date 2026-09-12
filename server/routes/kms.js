@@ -22,7 +22,7 @@ const storage = multer.diskStorage({
 
 const uploadKM = multer({
   storage,
-  limits: { fileSize: 25 * 1024 * 1024 },
+  limits: { fileSize: 25 * 1024 * 1024, files: 11 }, // 25MB/ไฟล์, สูงสุด 11 ไฟล์ (1 ปก + 10 รูป)
   fileFilter: (req, file, cb) => {
     const allowed = /jpeg|jpg|png|gif|webp|pdf/;
     const extOk = allowed.test(path.extname(file.originalname).toLowerCase());
@@ -72,20 +72,17 @@ router.get('/categories', authMiddleware, (req, res) => {
 });
 
 // POST /api/kms — อัปโหลด KM เอกสาร (file + ข้อมูล)
-router.post('/', authMiddleware, adminOnly, uploadKM.array('files', 5), (req, res) => {
+router.post('/', authMiddleware, adminOnly, uploadKM.array('files', 11), (req, res) => {
   try {
     const { title, category, symptom, location, operator, supervisor, content, tech_info, steps, images, ticket_no } = req.body;
     if (!title || !title.trim()) return res.status(400).json({ status: 'error', message: 'กรุณากรอกหัวข้อเอกสาร KM' });
 
-    // file หลัก: field 'file' เดียว หรือ file รายการใน 'files'
+    // file หลัก: ตัวแรกใน 'files' (ปก หรือ เอกสาร PDF) ส่วนตัวที่เหลือเป็นรูปประกอบ
     let file_url = '';
     let file_type = '';
     if (req.files && req.files.length) {
       file_url = `/uploads/${req.files[0].filename}`;
       file_type = path.extname(req.files[0].originalname).toLowerCase().replace('.', '') || '';
-    } else if (req.file) {
-      file_url = `/uploads/${req.file.filename}`;
-      file_type = path.extname(req.file.originalname).toLowerCase().replace('.', '') || '';
     }
 
     let imgList = [];

@@ -29,6 +29,9 @@ function populateCategorySelect() {
   const sel = document.getElementById('category');
   sel.innerHTML = '<option value="" disabled selected>เลือกหมวดหมู่</option>' +
     categoryList.map(c => `<option value="${c.name}">${c.name}</option>`).join('');
+
+  const dl = document.getElementById('category-datalist');
+  if (dl) dl.innerHTML = categoryList.map(c => `<option value="${c.name}">${c.name}</option>`).join('');
 }
 
 function populateLocationSelect() {
@@ -62,20 +65,6 @@ function onLocationChange() {
   wrap.style.display = need ? 'block' : 'none';
   inp.required = need;
   if (!need) inp.value = '';
-}
-
-function getFinalCategory() {
-  const val = document.getElementById('category').value;
-  const detail = document.getElementById('category-detail').value.trim();
-  if (CATEGORY_NEEDS_DETAIL.includes(val) && detail) return val + ' — ' + detail;
-  return val;
-}
-
-function getFinalLocation() {
-  const val = document.getElementById('location').value;
-  const detail = document.getElementById('location-detail').value.trim();
-  if (LOCATION_NEEDS_DETAIL.includes(val) && detail) return val + ' — ' + detail;
-  return val;
 }
 
 let photoPreviews = [];
@@ -161,11 +150,11 @@ async function handleSubmitForm(e) {
     }
 
     const payload = {
-      category: getFinalCategory(),
-      category_detail: document.getElementById('category').value,
+      category: document.getElementById('category').value,
+      category_detail: document.getElementById('category-detail').value.trim(),
       priority: document.getElementById('priority').value,
-      location: getFinalLocation(),
-      location_detail: document.getElementById('location').value,
+      location: document.getElementById('location').value,
+      location_detail: document.getElementById('location-detail').value.trim(),
       asset_id: document.getElementById('assetId').value.trim() || '-',
       title: document.getElementById('title').value,
       reporter_name: document.getElementById('reporterName').value.trim() || currentUser.name,

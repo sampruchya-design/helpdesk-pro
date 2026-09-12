@@ -66,7 +66,7 @@ function renderKMGrid(rows) {
       : '<span style="background:rgba(168,85,247,0.1);color:var(--purple);border:1px solid rgba(168,85,247,0.2);padding:2px 8px;border-radius:999px;font-size:10px;">📤 อัปโหลด</span>';
     const cover = km.file_url
       ? (/\.(png|jpe?g|gif|webp)$/i.test(km.file_url)
-        ? `<img src="${km.file_url}" alt="cover" style="width:100%;height:140px;object-fit:cover;border-radius:8px 8px 0 0;">`
+        ? `<img src="${escapeHtml(km.file_url).replace(/"/g, '')}" alt="cover" style="width:100%;height:140px;object-fit:cover;border-radius:8px 8px 0 0;">`
         : `<div style="width:100%;height:140px;background:linear-gradient(135deg,#0b1220 0%,#1e293b 100%);display:flex;align-items:center;justify-content:center;border-radius:8px 8px 0 0;font-size:40px;">📄</div>`)
       : `<div style="width:100%;height:140px;background:linear-gradient(135deg,#0b1220 0%,#1e293b 100%);display:flex;align-items:center;justify-content:center;border-radius:8px 8px 0 0;"><span style="font-size:40px;">📚</span></div>`;
     const created = String(km.created_at || '').split(' ')[0] || '-';
@@ -180,10 +180,6 @@ async function saveKM() {
 }
 
 // ===== AI Panel → KM =====
-function escapeHtml(s) {
-  return String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
-}
-
 async function saveAiAsKM() {
   const insights = document.getElementById('aiInsights');
   const txt = (insights?.innerText || '').trim();

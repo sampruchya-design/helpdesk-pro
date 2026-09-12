@@ -130,7 +130,7 @@ function renderTechTable(techStats) {
   }
   tbody.innerHTML = techStats.map(t => `
     <tr class="tech-row">
-      <td style="padding:12px 16px;font-weight:600;color:#e2eaf7;">${t.technician}</td>
+      <td style="padding:12px 16px;font-weight:600;color:#e2eaf7;">${escapeHtml(t.technician)}</td>
       <td style="padding:12px 16px;text-align:center;color:var(--yellow);">${t.pending}</td>
       <td style="padding:12px 16px;text-align:center;color:var(--teal);">${t.doing}</td>
       <td style="padding:12px 16px;text-align:center;color:var(--purple);">${t.waiting_parts}</td>

@@ -41,6 +41,10 @@ const API = {
   }
 };
 
+function escapeHtml(s) {
+  return String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+}
+
 // 로그인 유지
 function getCurrentUser() {
   try {

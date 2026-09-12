@@ -9,13 +9,13 @@ function renderAdminLists() {
   const techList = document.getElementById('technicianList');
 
   catList.innerHTML = categoryList.map(c => `
-    <li>${c.name}<button onclick="removeItem('category',${c.id})">✕</button></li>`).join('');
+    <li>${escapeHtml(c.name)}<button onclick="removeItem('category',${c.id})">✕</button></li>`).join('');
 
   locList.innerHTML = locationList.map(l => `
-    <li>${l.name}<button onclick="removeItem('location',${l.id})">✕</button></li>`).join('');
+    <li>${escapeHtml(l.name)}<button onclick="removeItem('location',${l.id})">✕</button></li>`).join('');
 
   techList.innerHTML = technicianList.map(t => `
-    <li>${t.name}<button onclick="removeItem('technician',${t.id})">✕</button></li>`).join('');
+    <li>${escapeHtml(t.name)}<button onclick="removeItem('technician',${t.id})">✕</button></li>`).join('');
 }
 
 async function addItem(type) {
@@ -68,11 +68,11 @@ function renderUserList() {
   el.innerHTML = allUsers.map(u => `
     <li style="display:flex;justify-content:space-between;align-items:center;gap:8px;padding:10px;background:rgba(0,212,255,0.03);border:1px solid var(--border);border-radius:8px;margin-bottom:6px;">
       <div style="flex:1;min-width:0;">
-        <div style="font-size:13px;font-weight:600;color:#e2eaf7;">${u.name}
-          ${u.position ? `<span style="font-size:10px;font-weight:400;color:var(--text-muted);"> · ${u.position}</span>` : ''}
+        <div style="font-size:13px;font-weight:600;color:#e2eaf7;">${escapeHtml(u.name)}
+          ${u.position ? `<span style="font-size:10px;font-weight:400;color:var(--text-muted);"> · ${escapeHtml(u.position)}</span>` : ''}
         </div>
         <div style="font-size:10px;color:var(--text-muted);">
-          ${u.code ? `<span style="color:var(--accent);">${u.code}</span> · ` : ''}${u.role === 'admin' ? '⭐ แอดมิน' : (u.position || '👤 พนักงาน')}${u.pin_set ? ' · 🔒' : ''}${u.active ? '' : ' · 🚫 ปิดใช้งาน'}
+          ${u.code ? `<span style="color:var(--accent);">${escapeHtml(u.code)}</span> · ` : ''}${u.role === 'admin' ? '⭐ แอดมิน' : (u.position ? escapeHtml(u.position) : '👤 พนักงาน')}${u.pin_set ? ' · 🔒' : ''}${u.active ? '' : ' · 🚫 ปิดใช้งาน'}
         </div>
       </div>
       <div style="display:flex;gap:4px;flex-shrink:0;">
@@ -246,10 +246,6 @@ async function sendReport(which) {
 }
 
 // ===== AI Panel =====
-function escapeHtml(s) {
-  return String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
-}
-
 async function loadAiPanel() {
   const insEl = document.getElementById('aiInsights');
   const compEl = document.getElementById('aiCostComp');

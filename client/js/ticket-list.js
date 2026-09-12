@@ -21,7 +21,7 @@ function getStatusBadge(status) {
     'ส่งซ่อมภายนอก': '<span class="badge badge-out">📤 ส่งซ่อมภายนอก</span>',
     'เสร็จสิ้น': '<span class="badge badge-done">✅ เสร็จสิ้น</span>',
   };
-  return map[status] || `<span class="badge badge-wait">⏳ ${status || 'รอดำเนินการ'}</span>`;
+  return map[status] || `<span class="badge badge-wait">⏳ ${escapeHtml(status || 'รอดำเนินการ')}</span>`;
 }
 
 function getPriorityBadge(priority) {
@@ -67,19 +67,19 @@ function renderList() {
     return `<tr>
       <td style="padding:14px 16px;">
         <div style="font-size:12px;color:var(--text-primary);">${dateTxt[0] || '-'}</div>
-        <div style="font-size:11px;color:var(--text-muted);">${r.ticket_no || ''}</div>
+        <div style="font-size:11px;color:var(--text-muted);">${escapeHtml(r.ticket_no || '')}</div>
       </td>
       <td style="padding:14px 16px;">
-        <div style="font-size:13px;font-weight:600;color:#e2eaf7;">${r.location || '-'}</div>
-        <span class="chip">${r.asset_id || '-'}</span>
+        <div style="font-size:13px;font-weight:600;color:#e2eaf7;">${escapeHtml(r.location || '-')}</div>
+        <span class="chip">${escapeHtml(r.asset_id || '-')}</span>
       </td>
       <td style="padding:14px 16px;max-width:260px;">
-        <div style="font-size:13px;color:#e2eaf7;white-space:normal;line-height:1.4;">${r.title || '-'}</div>
+        <div style="font-size:13px;color:#e2eaf7;white-space:normal;line-height:1.4;">${escapeHtml(r.title || '-')}</div>
         ${renderThumbs(r)}
-        ${r.notes ? `<div style="margin-top:${thumbsOf(r) ? '6px' : '4px'};font-size:12px;color:var(--green);white-space:normal;line-height:1.4;">🔧 การแก้ไขตรวจซ่อม: ${r.notes}</div>` : ''}
+        ${r.notes ? `<div style="margin-top:${thumbsOf(r) ? '6px' : '4px'};font-size:12px;color:var(--green);white-space:normal;line-height:1.4;">🔧 การแก้ไขตรวจซ่อม: ${escapeHtml(r.notes)}</div>` : ''}
         <div style="margin-top:${thumbsOf(r) || r.notes ? '6px' : '4px'};display:flex;gap:4px;flex-wrap:wrap;">
-          <span class="chip" style="background:rgba(124,58,237,0.08);color:rgba(168,85,247,0.8);border-color:rgba(124,58,237,0.15);">${r.category || '-'}</span>
-          <span class="chip" style="background:rgba(0,212,255,0.04);color:var(--text-muted);">👤 ${r.reporter_name || '-'}</span>
+          <span class="chip" style="background:rgba(124,58,237,0.08);color:rgba(168,85,247,0.8);border-color:rgba(124,58,237,0.15);">${escapeHtml(r.category || '-')}</span>
+          <span class="chip" style="background:rgba(0,212,255,0.04);color:var(--text-muted);">👤 ${escapeHtml(r.reporter_name || '-')}</span>
         </div>
       </td>
       <td style="text-align:center;padding:14px 16px;">${getPriorityBadge(r.priority)}</td>
@@ -97,7 +97,10 @@ function renderThumbs(r) {
   const c = cPhotos(r).slice(0, 5);
   const d = dPhotos(r).slice(0, 5);
   if (!c.length && !d.length) return '';
-  const thumb = (u, extra) => `<a href="${u}" target="_blank" rel="noopener"><img src="${u}" alt="รูปแนบ" style="width:52px;height:52px;object-fit:cover;border-radius:8px;border:1px solid rgba(255,255,255,0.15);${extra || ''}" title="เปิดรูปแนบ"></a>`;
+  const thumb = (u, extra) => {
+    const safe = escapeHtml(String(u).replace(/"/g, ''));
+    return `<a href="${safe}" target="_blank" rel="noopener"><img src="${safe}" alt="รูปแนบ" style="width:52px;height:52px;object-fit:cover;border-radius:8px;border:1px solid rgba(255,255,255,0.15);${extra || ''}" title="เปิดรูปแนบ"></a>`;
+  }
   const cHtml = c.length ? `<div style="display:flex;gap:5px;align-items:center;">${c.slice(0, 3).map(u => thumb(u)).join('')}${c.length > 3 ? `<span style="font-size:11px;color:var(--text-muted);">+${c.length - 3}</span>` : ''}</div>` : '';
   const dHtml = d.length ? `<div style="display:flex;gap:5px;align-items:center;margin-top:4px;">${d.slice(0, 3).map(u => thumb(u, 'border-color:rgba(79,214,154,0.55);')).join('')}${d.length > 3 ? `<span style="font-size:11px;color:var(--text-muted);">+${d.length - 3}</span>` : ''}<span style="font-size:10px;color:var(--green);border:1px solid rgba(79,214,154,0.45);padding:1px 6px;border-radius:999px;margin-left:2px;">ผลงาน</span></div>` : '';
   return `<div style="margin-top:6px;">${cHtml}${dHtml}</div>`;
@@ -128,7 +131,10 @@ function openUpdateModal(id) {
   const disp = document.getElementById('u_photoDisplay');
   const c = cPhotos(r);
   disp.innerHTML = c.length
-    ? c.map(u => `<img src="${u}" alt="รูปตอนแจ้ง" style="max-width:86px;max-height:86px;object-fit:cover;border-radius:8px;border:1px solid rgba(255,255,255,0.15);cursor:pointer;" onclick="window.open('${u}','_blank')" title="เปิดรูปขยาย">`).join('') +
+    ? c.map(u => {
+        const safe = escapeHtml(String(u).replace(/"/g, ''));
+        return `<img src="${safe}" alt="รูปตอนแจ้ง" style="max-width:86px;max-height:86px;object-fit:cover;border-radius:8px;border:1px solid rgba(255,255,255,0.15);cursor:pointer;" onclick="window.open('${safe}','_blank')" title="เปิดรูปขยาย">`;
+      }).join('') +
       `<span style="font-size:12px;color:var(--text-muted);align-self:center;">(${c.length} รูป)</span>`
     : `<span style="font-size:12px;color:var(--text-muted);">ยังไม่มีรูปตอนแจ้ง</span>`;
 
@@ -136,7 +142,10 @@ function openUpdateModal(id) {
   const ddisp = document.getElementById('u_photoDoneDisplay');
   const d = dPhotos(r);
   ddisp.innerHTML = d.length
-    ? d.map(u => `<img src="${u}" alt="รูปผลงาน" style="max-width:86px;max-height:86px;object-fit:cover;border-radius:8px;border:2px solid rgba(79,214,154,0.55);cursor:pointer;" onclick="window.open('${u}','_blank')" title="เปิดรูปขยาย">`).join('') +
+    ? d.map(u => {
+        const safe = escapeHtml(String(u).replace(/"/g, ''));
+        return `<img src="${safe}" alt="รูปผลงาน" style="max-width:86px;max-height:86px;object-fit:cover;border-radius:8px;border:2px solid rgba(79,214,154,0.55);cursor:pointer;" onclick="window.open('${safe}','_blank')" title="เปิดรูปขยาย">`;
+      }).join('') +
       `<span style="font-size:12px;color:var(--green);align-self:center;">(${d.length} รูป)</span>`
     : `<span style="font-size:12px;color:var(--text-muted);">ยังไม่มีรูปตอนเสร็จ</span>`;
 
