@@ -164,6 +164,20 @@ router.put('/:id', authMiddleware, (req, res) => {
 
   if (statusChanged) require('../services/notification').notifyStatusUpdate(updated, ticket.status);
 
+  // KM อัตโนมัติ: ปิดงานเป็น "เสร็จสิ้น" → สร้างเอกสาร KM จากงานนี้ (เฉพาะที่มีแนวทางซ่อมจริง, non-blocking)
+  if (statusChanged && status === 'เสร็จสิ้น') {
+    const { createKMFromTicket } = require('../services/km-from-ticket');
+    setTimeout(() => {
+      const res = createKMFromTicket(updated);
+      if (res.created) {
+        console.log(`[KM-Auto] สร้าง KM จากงาน #${updated.ticket_no} สำเร็จ (id=${res.id}, หมวด=${res.category})`);
+        if (io) io.emit('km:created', { id: res.id });
+      } else if (res.reason !== 'no-guideline' && res.reason !== 'not-completed' && res.reason !== 'duplicate') {
+        console.log(`[KM-Auto] ข้ามสร้าง KM จากงาน #${updated.ticket_no}: ${res.reason}`);
+      }
+    }, 300);
+  }
+
   res.json({ status: 'success', ticket: updated, message: 'อัปเดตสำเร็จ' });
 });
 
