@@ -4,6 +4,7 @@ const path = require('path');
 const crypto = require('crypto');
 const axios = require('axios');
 const { setSetting } = require('../database');
+const { authMiddleware, adminOnly } = require('../middleware/auth');
 const router = express.Router();
 
 const IDS_FILE = path.join(__dirname, '..', 'data', 'line_ids.json');
@@ -43,18 +44,23 @@ router.post('/webhook', (req, res) => {
   webhookStats.hits += 1;
   webhookStats.lastTime = new Date().toISOString();
 
+  // ตรวจ X-Line-Signature เมื่อตั้ง CHANNEL_SECRET — กันคนนอกปลอม webhook
+  // เข้ามาเปลี่ยนกลุ่มเป้าหมายแจ้งเตือน / สร้าง event ปลอม
+  // หมายเหตุ: ตอบ 200 เสมอ (LINE ไม่ได้ retry) แต่ไม่ประมวลผล event เมื่อไม่ผ่าน
   if (CHANNEL_SECRET) {
     const signature = req.headers['x-line-signature'] || '';
     const expected = crypto
       .createHmac('sha256', CHANNEL_SECRET)
       .update(req.rawBody || '')
       .digest('base64');
-    if (signature !== expected) {
-      console.warn('[LINE] ⚠️ ลายเซ็น webhook ไม่ตรงกับ LINE_CHANNEL_SECRET (secret คนละช่อง?) — ยังประมวลผลต่อเพื่อให้ระบบทำงาน');
-    } else {
-      webhookStats.valid += 1;
+    if (!signature || signature !== expected) {
+      console.warn('[LINE] ⚠️ ลายเซ็น webhook ไม่ตรง — ไม่ประมวลผล event (ไม่เปลี่ยนกลุ่มเป้าหมาย)');
+      return res.json({});
     }
+    webhookStats.valid += 1;
   } else {
+    // ไม่ได้ตั้ง secret (env) — ทำงานได้แต่ log เตือนให้ตั้ง (การตรวจสอบจะได้บังคับได้จริง)
+    console.warn('[LINE] ⚠️ ไม่ได้ตั้ง LINE_CHANNEL_SECRET — webhook ตรวจสอบลายเซ็นได้เฉพาะตอนตั้งค่า');
     webhookStats.valid += 1;
   }
 
@@ -100,7 +106,7 @@ router.post('/webhook', (req, res) => {
   res.json({});
 });
 
-router.get('/ids', (req, res) => {
+router.get('/ids', authMiddleware, adminOnly, (req, res) => {
   res.json({ status: 'success', ...readIds(), webhookStats });
 });
 

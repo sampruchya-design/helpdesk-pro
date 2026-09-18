@@ -12,15 +12,53 @@ const { assertJwtSecret } = require('./config');
 
 assertJwtSecret();
 
+const ALLOWED_ORIGINS = [
+  ...(process.env.RENDER_EXTERNAL_URL ? [process.env.RENDER_EXTERNAL_URL.replace(/\/$/, '')] : []),
+  'http://localhost',
+  'http://localhost:3000',
+  'http://localhost:3999',
+  'http://127.0.0.1:3000',
+  'http://127.0.0.1:3999'
+];
+
+function originAllowed(origin) {
+  if (!origin) return false; // non-browser request (curl/socket server) — ปล่อยผ่านใน express
+  return ALLOWED_ORIGINS.includes(origin);
+}
+
+// ป้องกันการเปิดใช้เว็บจากโดเมนอื่น (CORS จำกัด origin จริง + socket เดียวกับ express)
+const corsOpts = {
+  origin: (origin, cb) => {
+    // request ที่ไม่มี Origin (เช่น curl, server-to-server) → อนุญาต ไม่ใช่ browser
+    if (!origin) return cb(null, true);
+    if (originAllowed(origin)) return cb(null, true);
+    return cb(null, false);
+  }
+};
+
 const app = express();
 const server = http.createServer(app);
-const io = new Server(server, { cors: { origin: '*' } });
+const io = new Server(server, {
+  cors: {
+    origin: ALLOWED_ORIGINS,
+    methods: ['GET', 'POST']
+  }
+});
 
 app.set('io', io);
 
-app.use(cors());
+app.use(cors(corsOpts));
 app.use(express.json({ verify: (req, res, buf) => { req.rawBody = buf; } }));
 app.use(express.urlencoded({ extended: true }));
+
+// === Security headers ===
+app.use((req, res, next) => {
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+  res.setHeader('X-Frame-Options', 'DENY');
+  res.setHeader('Referrer-Policy', 'no-referrer');
+  res.setHeader('X-XSS-Protection', '1; mode=block');
+  next();
+});
 
 app.use(express.static(path.join(__dirname, '..', 'client')));
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
@@ -34,7 +72,7 @@ app.use('/api/line', require('./routes/line'));
 app.use('/api/ai', require('./routes/ai'));
 app.use('/api/kms', require('./routes/kms'));
 // DEBUG: ดูสถานะ env vars (ไม่เปิดเผยค่า secret — ตอบแค่ true/false)
-app.get('/api/debug/env', (req, res) => {
+app.get('/api/debug/env', authMiddleware, (req, res) => {
   res.json({
     lineToken: Boolean(process.env.LINE_CHANNEL_ACCESS_TOKEN),
     lineChannelId: Boolean(process.env.LINE_CHANNEL_ID),

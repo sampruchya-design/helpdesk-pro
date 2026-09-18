@@ -1,26 +1,56 @@
 const express = require('express');
 const jwt = require('jsonwebtoken');
-const { getOne, runQuery, getAll, hashPin } = require('../database');
+const { getOne, runQuery, getAll, hashPin, verifyPin } = require('../database');
 const { authMiddleware, adminOnly } = require('../middleware/auth');
 const { JWT_SECRET } = require('../config');
 
 const router = express.Router();
 
+// Rate limit: กัน brute-force รหัสผ่าน (5 ครั้งผิด / 10 นาที ต่อ code+IP)
+const loginFails = new Map(); // key `code:ip` → { count, lockedUntil }
+const MAX_LOGIN_ATTEMPTS = 5;
+const LOCK_MS = 10 * 60 * 1000;
+
+function loginKey(code, ip) { return `${String(code).toLowerCase()}:${ip}`; }
+
+function getIP(req) {
+  return req.headers['x-forwarded-for']?.split(',')[0].trim() || req.socket.remoteAddress || 'unknown';
+}
+
 // POST /api/auth/login
 router.post('/login', (req, res) => {
   const { code, pin } = req.body;
+  const ip = getIP(req);
+
   if (!code || !String(code).trim()) {
     return res.status(400).json({ status: 'error', message: 'กรุณากรอกรหัสพนักงาน' });
   }
 
-  const user = getOne('SELECT * FROM users WHERE lower(trim(code)) = lower(?) AND active = 1', [String(code).trim()]);
-
-  if (!user) {
-    return res.status(401).json({ status: 'error', message: 'รหัสพนักงานไม่ถูกต้อง' });
+  // เช็ค lockout ก่อน
+  const rec = loginFails.get(loginKey(code, ip));
+  if (rec && rec.lockedUntil && Date.now() < rec.lockedUntil) {
+    const left = Math.ceil((rec.lockedUntil - Date.now()) / 60000);
+    return res.status(429).json({ status: 'error', message: `ลองใหม่ได้ในอีก ${left} นาที (รหัสผ่านผิดบ่อยเกินไป)` });
   }
 
-  if (user.pin && (!pin || hashPin(String(pin)) !== user.pin)) {
-    return res.status(401).json({ status: 'error', message: 'รหัสผ่านไม่ถูกต้อง' });
+  const user = getOne('SELECT * FROM users WHERE lower(trim(code)) = lower(?) AND active = 1', [String(code).trim()]);
+
+  if (!user || !verifyPin(pin || '', user.pin || '')) {
+    // นับความล้มเหลว
+    const key = loginKey(code, ip);
+    const r = loginFails.get(key) || { count: 0 };
+    r.count += 1;
+    if (r.count >= MAX_LOGIN_ATTEMPTS) { r.lockedUntil = Date.now() + LOCK_MS; r.count = 0; }
+    loginFails.set(key, r);
+    // กัน leak ว่า user มีจริง → ข้อความเดียวกันทั้งสองกรณี
+    return res.status(401).json({ status: 'error', message: 'รหัสพนักงานหรือรหัสผ่านไม่ถูกต้อง' });
+  }
+
+  // สำเร็จ → เคลียร์ fail counter + อัปเกรด PIN legacy (SHA-256) เป็น scrypt
+  loginFails.delete(loginKey(code, ip));
+  const stored = user.pin || '';
+  if (stored && !stored.startsWith('scrypt$')) {
+    try { runQuery('UPDATE users SET pin = ? WHERE id = ?', [hashPin(String(pin)), user.id]); } catch (e) {}
   }
 
   const token = jwt.sign(

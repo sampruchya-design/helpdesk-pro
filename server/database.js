@@ -5,8 +5,37 @@ const crypto = require('crypto');
 
 const DB_PATH = path.join(__dirname, 'data', 'database.db');
 
-function hashPin(pin) {
+// PIN hash: scrypt พร้อม salt (กัน brute-force/rainbow table) — ไฟล์เก่าที่เป็น SHA-256 ยังถูกได้ผ่าน verifyPin แล้วอัปเกรดอัตโนมัติตอน login
+const SCRYPT = { N: 16384, r: 8, p: 1, keylen: 32 };
+
+function hashPinLegacy(pin) {
   return crypto.createHash('sha256').update(String(pin)).digest('hex');
+}
+
+function hashPin(pin) {
+  const salt = crypto.randomBytes(16).toString('hex');
+  const hash = crypto.scryptSync(String(pin), salt, SCRYPT.keylen, { N: SCRYPT.N, r: SCRYPT.r, p: SCRYPT.p }).toString('hex');
+  return `scrypt$${SCRYPT.N}$${SCRYPT.r}$${SCRYPT.p}$${salt}$${hash}`;
+}
+
+// ตรวจ PIN: รองรับ scrypt ใหม่ + SHA-256 legacy (คืน true = ผ่าน; ถ้า legacy ผ่าน callers ควรอัปเกรดเป็น scrypt)
+function verifyPin(pin, stored) {
+  if (!stored || !String(stored).trim()) return false;
+  const s = String(stored);
+  if (!s.startsWith('scrypt$')) {
+    return hashPinLegacy(pin) === s;
+  }
+  const parts = s.split('$');
+  if (parts.length !== 6) return false;
+  const [, N, r, p, salt, hash] = parts;
+  try {
+    const calc = crypto.scryptSync(String(pin), salt, SCRYPT.keylen, { N: +N, r: +r, p: +p }).toString('hex');
+    const a = Buffer.from(calc, 'hex');
+    const b = Buffer.from(hash, 'hex');
+    return a.length === b.length && crypto.timingSafeEqual(a, b);
+  } catch (e) {
+    return false;
+  }
 }
 
 let db = null;
@@ -280,4 +309,4 @@ function generateTicketNo() {
   return `RQ-${date}-${seq}`;
 }
 
-module.exports = { getDB, runQuery, getAll, getOne, generateTicketNo, saveDB, getSetting, setSetting, hashPin };
+module.exports = { getDB, runQuery, getAll, getOne, generateTicketNo, saveDB, getSetting, setSetting, hashPin, verifyPin };
