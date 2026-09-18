@@ -42,11 +42,9 @@ function showApp() {
 }
 
 async function bootApp() {
+  // Lazy loading: โหลด config + dashboard เท่านั้นตอน boot — ที่เหลือโหลดเมื่อเปิด tab ครั้งแรก (ประหยัด fetch ซ้ำ)
   await loadConfigLists();
   loadDashboard();
-  loadTickets();
-  loadAssets();
-  loadKMs();
 }
 
 // ===== Sidebar =====
@@ -59,6 +57,22 @@ function closeSidebar() {
   document.getElementById('sidebar-overlay').classList.remove('open');
 }
 
+// ===== Tabs คลัง (TTL) — ป้องกันโหลดซ้ำซ้อนเมื่อสลับไป-มาภายใน 5 วิ (socket refresh ยังบังคับได้)
+let tabLoadedAt = {};
+let tabLoading = {};
+function recentlyLoaded(id) {
+  // ถ้ายังโหลดค้างอยู่ ไม่ต้องโหลดซ้อน (รอให้เสร็จแล้ว reader ที่สลับกลับมาจะได้ข้อมูลใหม่)
+  if (tabLoading[id]) return true;
+  return tabLoadedAt[id] && (Date.now() - tabLoadedAt[id]) < 5000;
+}
+function markTabLoaded(id) { tabLoadedAt[id] = Date.now(); tabLoading[id] = false; }
+
+async function withTabGuard(id, fn) {
+  tabLoading[id] = true;
+  try { return await fn(); }
+  finally { tabLoading[id] = false; }
+}
+
 function switchTab(id) {
   document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
   document.querySelectorAll('.nav-btn').forEach(el => el.classList.remove('active'));
@@ -67,11 +81,18 @@ function switchTab(id) {
   if (btn) btn.classList.add('active');
   if (window.innerWidth < 1024) closeSidebar();
 
-  if (id === 'dashboard') loadDashboard();
-  if (id === 'list') loadTickets();
-  if (id === 'asset') loadAssets();
-  if (id === 'km') loadKMs();
-  if (id === 'admin') { loadUsers(); renderAdminLists(); loadTelegramSettings(); loadAiPanel(); }
+  // admin เป็นหน้าที่แก้ข้อมูลบ่อย → โหลดใหม่เสมอ; ส่วนอื่น lazy + TTL
+  if (id === 'admin') {
+    loadUsers(); renderAdminLists(); loadTelegramSettings(); loadAiPanel();
+    return;
+  }
+  if (recentlyLoaded(id)) return;
+
+  if (id === 'dashboard') withTabGuard('dashboard', loadDashboard);
+  if (id === 'list') withTabGuard('list', loadTickets);
+  if (id === 'asset') withTabGuard('asset', loadAssets);
+  if (id === 'km') withTabGuard('km', loadKMs);
+  markTabLoaded(id);
 }
 
 // ===== Modals =====

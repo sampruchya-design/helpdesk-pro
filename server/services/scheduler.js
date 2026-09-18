@@ -60,7 +60,7 @@ function generateDailyReport() {
     outsourced: outsourced.c,
     doneToday: doneToday.c,
     monthCost: monthCost.c,
-    insights: analyzeInsights().slice(0, 4)
+    insights: analyzeInsights({ limit: 4 })
   });
 }
 
@@ -97,7 +97,7 @@ function generateWeeklyReport() {
     topTech: topTechRow?.technician || null,
     topTechCount: topTechRow?.c || 0,
     overdue: overdue,
-    insights: analyzeInsights().slice(0, 4)
+    insights: analyzeInsights({ limit: 4 })
   });
 }
 

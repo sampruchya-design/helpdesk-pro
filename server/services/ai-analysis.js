@@ -80,7 +80,7 @@ function costInsights(comp) {
   return out;
 }
 
-function analyzeInsights() {
+function analyzeInsights({ limit } = {}) {
   const total = getOne('SELECT COUNT(*) as c FROM tickets');
   const insights = [];
 
@@ -157,10 +157,12 @@ function analyzeInsights() {
     insights.push(`งานที่รออะไหล่ ${waitingParts.c} รายการ (เก่าสุดค้างมา ${Math.round(waitingParts.oldest_days)} วัน) — ตรวจสอบการสั่งซื้อ`);
   }
 
-  // 9. เปรียบเทียบค่าใช้จ่าย ซ่อมเอง vs จ้างภายนอก
-  insights.push(...costInsights(buildCostComparison()));
+  // 9. เปรียบเทียบค่าใช้จ่าย ซ่อมเอง vs จ้างภายนอก (เฉพาะเมื่อขอบเขต insight ยังเหลือ — 3 query ต่อ 2 insight)
+  if (!limit || insights.length < limit) {
+    insights.push(...costInsights(buildCostComparison()));
+  }
 
-  return insights;
+  return insights.slice(0, limit);
 }
 
 module.exports = { analyzeInsights, buildCostComparison, costInsights };

@@ -4,7 +4,7 @@ const { authMiddleware } = require('../middleware/auth');
 
 const router = express.Router();
 
-// GET /api/assets — asset history
+// GET /api/assets — asset history (2 queries: aggregate แล้ว join last status — กำจัด N+1)
 router.get('/', authMiddleware, (req, res) => {
   const assets = getAll(`
     SELECT
@@ -18,16 +18,27 @@ router.get('/', authMiddleware, (req, res) => {
     ORDER BY repair_count DESC
   `);
 
-  // Get last status for each asset
+  if (!assets.length) return res.json({ status: 'success', assets });
+
+  // last status: JOIN status ล่าสุดของแต่ละ asset ครั้งเดียว — ไม่ต้อง loop ยิง query ทีละตัว
+  const lastById = {};
+  const lastByLoc = {};
+  getAll(`
+    SELECT key, status
+    FROM (
+      SELECT asset_id AS key, status, created_at,
+        ROW_NUMBER() OVER (PARTITION BY CASE WHEN asset_id IS NOT NULL AND asset_id != '-' THEN asset_id ELSE '[สถานที่] ' || location END ORDER BY created_at DESC, id DESC) rn
+      FROM tickets
+    ) WHERE rn = 1 AND key IS NOT NULL
+  `).forEach(r => {
+    if (String(r.key).startsWith('[สถานที่] ')) lastByLoc[r.key] = r.status;
+    else lastById[r.key] = r.status;
+  });
+
   assets.forEach(a => {
-    if (a.asset_key.startsWith('[สถานที่] ')) {
-      const loc = a.asset_key.replace('[สถานที่] ', '');
-      const last = getOne('SELECT status FROM tickets WHERE location = ? ORDER BY created_at DESC LIMIT 1', [loc]);
-      a.last_status = last?.status || null;
-    } else {
-      const last = getOne('SELECT status FROM tickets WHERE asset_id = ? ORDER BY created_at DESC LIMIT 1', [a.asset_key]);
-      a.last_status = last?.status || null;
-    }
+    a.last_status = String(a.asset_key).startsWith('[สถานที่] ')
+      ? (lastByLoc[a.asset_key] || null)
+      : (lastById[a.asset_key] || null);
   });
 
   res.json({ status: 'success', assets });
