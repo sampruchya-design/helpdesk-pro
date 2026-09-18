@@ -6,7 +6,7 @@ const { Server } = require('socket.io');
 const cors = require('cors');
 const path = require('path');
 const fs = require('fs');
-const { getDB, getAll, getOne, runQuery, saveDB, getSetting } = require('./database');
+const { getDB, getAll, saveDB, getSetting } = require('./database');
 const { authMiddleware, adminOnly } = require('./middleware/auth');
 const { assertJwtSecret } = require('./config');
 
@@ -101,71 +101,18 @@ app.get('/api/backup', authMiddleware, adminOnly, (req, res) => {
   }
 });
 
-// === Config: Categories ===
-app.get('/api/config/categories', authMiddleware, (req, res) => {
-  const rows = getAll('SELECT * FROM categories ORDER BY id');
-  res.json({ status: 'success', categories: rows });
-});
+// === Config: catalog CRUD (categories / locations / technicians) — deep module ตัวเดียวกำจัด 3 ชุด endpoint ซ้ำ
+const createCatalogRouter = require('./routes/config-catalog');
 
-app.post('/api/config/categories', authMiddleware, adminOnly, (req, res) => {
-  const { name } = req.body;
-  if (!name?.trim()) return res.status(400).json({ status: 'error', message: 'กรุณากรอกชื่อหมวดหมู่' });
-  try {
-    runQuery('INSERT INTO categories (name) VALUES (?)', [name.trim()]);
-    res.json({ status: 'success', message: 'เพิ่มสำเร็จ' });
-  } catch (e) {
-    res.status(409).json({ status: 'error', message: 'ชื่อนี้มีอยู่แล้ว' });
-  }
-});
-
-app.delete('/api/config/categories/:id', authMiddleware, adminOnly, (req, res) => {
-  runQuery('DELETE FROM categories WHERE id = ?', [Number(req.params.id)]);
-  res.json({ status: 'success' });
-});
-
-// === Config: Locations ===
-app.get('/api/config/locations', authMiddleware, (req, res) => {
-  const rows = getAll('SELECT * FROM locations ORDER BY id');
-  res.json({ status: 'success', locations: rows });
-});
-
-app.post('/api/config/locations', authMiddleware, adminOnly, (req, res) => {
-  const { name } = req.body;
-  if (!name?.trim()) return res.status(400).json({ status: 'error', message: 'กรุณากรอกชื่อสถานที่' });
-  try {
-    runQuery('INSERT INTO locations (name) VALUES (?)', [name.trim()]);
-    res.json({ status: 'success', message: 'เพิ่มสำเร็จ' });
-  } catch (e) {
-    res.status(409).json({ status: 'error', message: 'ชื่อนี้มีอยู่แล้ว' });
-  }
-});
-
-app.delete('/api/config/locations/:id', authMiddleware, adminOnly, (req, res) => {
-  runQuery('DELETE FROM locations WHERE id = ?', [Number(req.params.id)]);
-  res.json({ status: 'success' });
-});
-
-// === Config: Technicians ===
-app.get('/api/config/technicians', authMiddleware, (req, res) => {
-  const rows = getAll('SELECT * FROM technicians ORDER BY name');
-  res.json({ status: 'success', technicians: rows });
-});
-
-app.post('/api/config/technicians', authMiddleware, adminOnly, (req, res) => {
-  const { name } = req.body;
-  if (!name?.trim()) return res.status(400).json({ status: 'error', message: 'กรุณากรอกชื่อช่าง' });
-  try {
-    runQuery('INSERT INTO technicians (name) VALUES (?)', [name.trim()]);
-    res.json({ status: 'success', message: 'เพิ่มสำเร็จ' });
-  } catch (e) {
-    res.status(409).json({ status: 'error', message: 'ชื่อนี้มีอยู่แล้ว' });
-  }
-});
-
-app.delete('/api/config/technicians/:id', authMiddleware, adminOnly, (req, res) => {
-  runQuery('DELETE FROM technicians WHERE id = ?', [Number(req.params.id)]);
-  res.json({ status: 'success' });
-});
+app.use('/api/config/categories', createCatalogRouter({
+  table: 'categories', key: 'categories', label: 'หมวดหมู่', orderBy: 'id', orderDir: 'ASC'
+}));
+app.use('/api/config/locations', createCatalogRouter({
+  table: 'locations', key: 'locations', label: 'สถานที่', orderBy: 'id', orderDir: 'ASC'
+}));
+app.use('/api/config/technicians', createCatalogRouter({
+  table: 'technicians', key: 'technicians', label: 'ช่าง', orderBy: 'name', orderDir: 'ASC'
+}));
 
 // === Export ===
 app.get('/api/export/:format', authMiddleware, (req, res) => {

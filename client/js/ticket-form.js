@@ -1,49 +1,32 @@
 // ==========================================
 //  TICKET FORM — สร้างงานแจ้งซ่อม
 // ==========================================
-let categoryList = [];
-let locationList = [];
-let technicianList = [];
 
-async function loadConfigLists() {
-  try {
-    const [cats, locs, techs] = await Promise.all([
-      API.get('/api/config/categories'),
-      API.get('/api/config/locations'),
-      API.get('/api/config/technicians')
-    ]);
-    categoryList = cats.categories;
-    locationList = locs.locations;
-    technicianList = techs.technicians;
-
-    populateCategorySelect();
-    populateLocationSelect();
-    populateTechnicianSelects();
-    renderAdminLists();
-  } catch (err) {
-    console.error('โหลด config ไม่สำเร็จ:', err);
-  }
-}
+ConfigStore.onChange(() => {
+  populateCategorySelect();
+  populateLocationSelect();
+  populateTechnicianSelects();
+});
 
 function populateCategorySelect() {
   const sel = document.getElementById('category');
   sel.innerHTML = '<option value="" disabled selected>เลือกหมวดหมู่</option>' +
-    categoryList.map(c => `<option value="${c.name}">${c.name}</option>`).join('');
+    ConfigStore.categories.map(c => `<option value="${c.name}">${c.name}</option>`).join('');
 
   const dl = document.getElementById('category-datalist');
-  if (dl) dl.innerHTML = categoryList.map(c => `<option value="${c.name}">${c.name}</option>`).join('');
+  if (dl) dl.innerHTML = ConfigStore.categories.map(c => `<option value="${c.name}">${c.name}</option>`).join('');
 }
 
 function populateLocationSelect() {
   const sel = document.getElementById('location');
   sel.innerHTML = '<option value="" disabled selected>เลือกสถานที่</option>' +
-    locationList.map(l => `<option value="${l.name}">${l.name}</option>`).join('');
+    ConfigStore.locations.map(l => `<option value="${l.name}">${l.name}</option>`).join('');
 }
 
 function populateTechnicianSelects() {
   const dl = document.getElementById('technician-datalist');
   if (dl) {
-    dl.innerHTML = technicianList.map(t => `<option value="${t.name}">${t.name}</option>`).join('');
+    dl.innerHTML = ConfigStore.technicians.map(t => `<option value="${t.name}">${t.name}</option>`).join('');
   }
 }
 

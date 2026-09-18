@@ -8,15 +8,17 @@ function renderAdminLists() {
   const locList = document.getElementById('locationList');
   const techList = document.getElementById('technicianList');
 
-  catList.innerHTML = categoryList.map(c => `
+  catList.innerHTML = ConfigStore.categories.map(c => `
     <li>${escapeHtml(c.name)}<button onclick="removeItem('category',${c.id})">✕</button></li>`).join('');
 
-  locList.innerHTML = locationList.map(l => `
+  locList.innerHTML = ConfigStore.locations.map(l => `
     <li>${escapeHtml(l.name)}<button onclick="removeItem('location',${l.id})">✕</button></li>`).join('');
 
-  techList.innerHTML = technicianList.map(t => `
+  techList.innerHTML = ConfigStore.technicians.map(t => `
     <li>${escapeHtml(t.name)}<button onclick="removeItem('technician',${t.id})">✕</button></li>`).join('');
 }
+
+ConfigStore.onChange(() => renderAdminLists());
 
 async function addItem(type) {
   const map = {
@@ -31,7 +33,7 @@ async function addItem(type) {
   try {
     await API.post(url, { name: val });
     document.getElementById(inputId).value = '';
-    await loadConfigLists();
+    await ConfigStore.load();
   } catch (err) {
     showModal('เกิดข้อผิดพลาด', err.message);
   }
@@ -46,7 +48,7 @@ async function removeItem(type, id) {
   };
   try {
     await API.del(`${map[type]}/${id}`);
-    await loadConfigLists();
+    await ConfigStore.load();
   } catch (err) {
     showModal('เกิดข้อผิดพลาด', err.message);
   }

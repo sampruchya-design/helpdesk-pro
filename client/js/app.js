@@ -43,7 +43,7 @@ function showApp() {
 
 async function bootApp() {
   // Lazy loading: โหลด config + dashboard เท่านั้นตอน boot — ที่เหลือโหลดเมื่อเปิด tab ครั้งแรก (ประหยัด fetch ซ้ำ)
-  await loadConfigLists();
+  await ConfigStore.load();
   loadDashboard();
 }
 
