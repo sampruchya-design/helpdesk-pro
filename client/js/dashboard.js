@@ -16,29 +16,59 @@ async function loadDashboard() {
   }
 }
 
+function animateCount(el, target) {
+  const dur = 700;
+  const start = performance.now();
+  target = Number(target) || 0;
+  function step(now) {
+    const p = Math.min((now - start) / dur, 1);
+    const eased = 1 - Math.pow(1 - p, 3);
+    el.textContent = Math.round(target * eased).toLocaleString();
+    if (p < 1) requestAnimationFrame(step);
+  }
+  requestAnimationFrame(step);
+}
+
+function initStatInteractions() {
+  document.querySelectorAll('.stat-card').forEach(card => {
+    const onMove = (e) => {
+      const r = card.getBoundingClientRect();
+      card.style.setProperty('--gx', ((e.clientX - r.left) / r.width * 100).toFixed(1) + '%');
+      card.style.setProperty('--gy', ((e.clientY - r.top) / r.height * 100).toFixed(1) + '%');
+    };
+    const onLeave = () => { card.style.setProperty('--gx', '50%'); card.style.setProperty('--gy', '-20%'); };
+    card.addEventListener('mousemove', onMove);
+    card.addEventListener('mouseleave', onLeave);
+  });
+}
+
 function renderDashboard(data) {
   const statuses = data.statuses;
   const total = data.total;
 
   const cards = [
     { label: 'ทั้งหมด', filter: 'all', val: total, tag: '📋 รายการ', color: 'var(--accent2)', bleft: '3px solid var(--accent2)' },
-    { label: 'รอดำเนินการ', filter: 'รอดำเนินการ', val: statuses['รอดำเนินการ'], tag: '⏳ รายการ', color: 'var(--yellow)', bleft: '3px solid var(--yellow)' },
+    { label: 'รอดำเนินการ', filter: 'รอดำดำเนินการ', val: statuses['รอดำเนินการ'], tag: '⏳ รายการ', color: 'var(--yellow)', bleft: '3px solid var(--yellow)' },
     { label: 'กำลังซ่อม', filter: 'กำลังซ่อม', val: statuses['กำลังซ่อม'], tag: '🔧 รายการ', color: 'var(--teal)', bleft: '3px solid var(--teal)' },
     { label: 'รออะไหล่', filter: 'รออะไหล่', val: statuses['รออะไหล่'], tag: '📦 รายการ', color: 'var(--purple)', bleft: '3px solid var(--purple)' },
     { label: 'ส่งซ่อมภายนอก', filter: 'ส่งซ่อมภายนอก', val: statuses['ส่งซ่อมภายนอก'], tag: '📤 รายการ', color: 'var(--orange)', bleft: '3px solid var(--orange)' },
     { label: 'เสร็จสิ้น', filter: 'เสร็จสิ้น', val: statuses['เสร็จสิ้น'], tag: '✅ รายการ', color: 'var(--green)', bleft: '3px solid var(--green)' },
   ];
 
-  document.getElementById('stat-cards').innerHTML = cards.map(c => `
-    <div class="glass stat-card" onclick="filterAndGoTo('${c.filter}')" style="border-left:${c.bleft};">
+  document.getElementById('stat-cards').innerHTML = cards.map((c, i) => `
+    <div class="glass stat-card" onclick="filterAndGoTo('${c.filter}')" style="border-left:${c.bleft};--d:${i * 70}ms;">
       <div class="stat-glow" style="background:${c.color};"></div>
       <div class="stat-label">${c.label}</div>
-      <div class="stat-value" style="color:${c.color};}">${c.val}</div>
+      <div class="stat-value" style="color:${c.color};">0</div>
       <div class="stat-tag" style="color:${c.color};">${c.tag}</div>
     </div>
   `).join('');
 
-  // Category chart
+  cards.forEach((c, i) => {
+    const el = document.querySelectorAll('#stat-cards .stat-value')[i];
+    animateCount(el, c.val);
+  });
+  initStatInteractions();
   const byCategory = data.byCategory || [];
   drawChart('chartCategory', 'doughnut',
     byCategory.map(r => r.category),

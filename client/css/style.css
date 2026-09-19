@@ -182,6 +182,23 @@ body::before {
 .stat-value { font-size: 32px; font-weight: 800; color: #e2eaf7; line-height: 1; }
 .stat-tag { font-size: 11px; margin-top: 4px; }
 
+/* ===== GLASSEY STAT-CARD INTERACTIONS ===== */
+.stat-card { --gx: 80%; --gy: -20%; --d: 0ms; animation: statIn 0.5s cubic-bezier(0.2, 0.8, 0.2, 1) both; animation-delay: var(--d); }
+.stat-card::after {
+  content: ''; position: absolute; inset: 0; pointer-events: none; border-radius: inherit;
+  background: radial-gradient(140px circle at var(--gx) var(--gy), rgba(0,212,255,0.14), transparent 70%);
+  opacity: 0; transition: opacity 0.25s ease;
+}
+.stat-card:hover::after { opacity: 1; }
+.stat-card:hover .stat-glow { opacity: 0.35; transform: scale(1.15); }
+.stat-glow { transition: opacity 0.25s ease, transform 0.25s ease; }
+.stat-card:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+@media (prefers-reduced-motion: reduce) {
+  .stat-card { animation: none; }
+  .stat-card::after { display: none; }
+}
+@keyframes statIn { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: translateY(0); } }
+
 /* ===== CHART ===== */
 .chart-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 16px; margin-bottom: 24px; }
 .chart-wrap { position: relative; width: 100%; height: 220px; }
